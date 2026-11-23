@@ -1,0 +1,10 @@
+{% extends "base.html" %}
+{% block titulo %}Busca{% endblock %}
+{% block conteudo %}
+<h1>Busca: “{{ q }}”</h1>
+{% if not resultados %}
+  <p class="sutil">Nenhum responsável ou animal encontrado.</p>
+  {% if current_user.tem_perfil('recepcao') %}<a class="btn btn-primario" href="{{ url_for('responsaveis.novo') }}">Cadastrar novo responsável</a>{% endif %}
+{% endif %}
+{% with itens = resultados %}{% include "_tabela_responsaveis.html" %}{% endwith %}
+{% endblock %}

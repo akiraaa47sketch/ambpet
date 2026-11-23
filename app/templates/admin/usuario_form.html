@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% from "_macros.html" import csrf with context %}
+{% block titulo %}{{ 'Editar' if u else 'Novo' }} usuário{% endblock %}
+{% block conteudo %}
+{% set v = form if form else {} %}
+<p><a href="{{ url_for('admin.usuarios') }}">← Usuários</a></p>
+<h1>{{ 'Editar usuário' if u else 'Novo usuário' }}</h1>
+<form method="post" class="cartao estreito" novalidate>
+  {{ csrf() }}
+  <label class="campo {{ 'com-erro' if erros.nome }}"><span>Nome <b class="obr">*</b></span>
+    <input name="nome" value="{{ v.get('nome', u.nome if u else '') }}" required>
+    {% if erros.nome %}<small class="erro">{{ erros.nome }}</small>{% endif %}</label>
+  <label class="campo {{ 'com-erro' if erros.login }}"><span>Login <b class="obr">*</b></span>
+    <input name="login" value="{{ v.get('login', u.login if u else '') }}" required autocomplete="off">
+    {% if erros.login %}<small class="erro">{{ erros.login }}</small>{% endif %}</label>
+  {% set perfil_atual = v.get('perfil', u.perfil if u else '') %}
+  <label class="campo {{ 'com-erro' if erros.perfil }}"><span>Perfil <b class="obr">*</b></span>
+    <select name="perfil" required>
+      <option value="">—</option>
+      {% for k, nome in PERFIS.items() %}<option value="{{ k }}" {{ 'selected' if perfil_atual == k }}>{{ nome }}</option>{% endfor %}
+    </select>
+    {% if erros.perfil %}<small class="erro">{{ erros.perfil }}</small>{% endif %}</label>
+  <label class="campo"><span>CRMV (veterinária — sai na receita)</span>
+    <input name="crmv" value="{{ v.get('crmv', (u.crmv or '') if u else '') }}" placeholder="ex.: SP-12345"></label>
+  <label class="campo {{ 'com-erro' if erros.senha }}"><span>{{ 'Nova senha (deixe em branco para manter)' if u else 'Senha' }}{% if not u %} <b class="obr">*</b>{% endif %}</span>
+    <input type="password" name="senha" minlength="8" autocomplete="new-password">
+    {% if erros.senha %}<small class="erro">{{ erros.senha }}</small>{% endif %}</label>
+  {% set ativo = (v.get('ativo') == 'on') if v else (u.ativo if u else true) %}
+  <label class="check"><input type="checkbox" name="ativo" {{ 'checked' if ativo }}> Usuário ativo</label>
+  <div class="botoes"><button class="btn btn-primario">Salvar</button></div>
+</form>
+{% endblock %}

@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% block titulo %}Auditoria{% endblock %}
+{% block conteudo %}
+<p><a href="{{ url_for('admin.usuarios') }}">← Usuários</a></p>
+<div class="cabecalho">
+  <h1>Registro de auditoria</h1>
+  <form method="get" class="linha">
+    <select name="entidade" onchange="this.form.submit()" aria-label="Filtrar">
+      <option value="">Todas as entidades</option>
+      {% for e in entidades %}<option {{ 'selected' if e == entidade }}>{{ e }}</option>{% endfor %}
+    </select>
+  </form>
+</div>
+<div class="tabela-rolagem">
+<table class="tabela compacta">
+  <thead><tr><th>Data/hora</th><th>Usuário</th><th>Ação</th><th>Entidade</th><th>Detalhes</th></tr></thead>
+  {% for l in pag.items %}
+  <tr>
+    <td class="nowrap">{{ l.criado_em|datahora }}</td>
+    <td>{{ l.usuario.nome if l.usuario else '—' }}</td>
+    <td>{{ l.acao }}</td>
+    <td class="nowrap">
+      {% if l.entidade == 'responsavel' %}<a href="{{ url_for('responsaveis.ver', rid=l.entidade_id) }}">responsável #{{ l.entidade_id }}</a>
+      {% elif l.entidade == 'animal' %}<a href="{{ url_for('animais.ver', aid=l.entidade_id) }}">animal #{{ l.entidade_id }}</a>
+      {% else %}{{ l.entidade }} #{{ l.entidade_id }}{% endif %}
+    </td>
+    <td><code class="detalhes">{{ l.detalhes or '' }}</code></td>
+  </tr>
+  {% endfor %}
+</table>
+</div>
+<div class="botoes">
+  {% if pag.has_prev %}<a class="btn" href="{{ url_for('admin.auditoria', pagina=pag.prev_num, entidade=entidade) }}">← Mais recentes</a>{% endif %}
+  <span class="sutil">Página {{ pag.page }} de {{ pag.pages or 1 }}</span>
+  {% if pag.has_next %}<a class="btn" href="{{ url_for('admin.auditoria', pagina=pag.next_num, entidade=entidade) }}">Mais antigos →</a>{% endif %}
+</div>
+{% endblock %}

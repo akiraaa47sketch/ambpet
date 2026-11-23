@@ -1,0 +1,126 @@
+{% extends "base.html" %}
+{% from "_macros.html" import status_badge, csrf with context %}
+{% block titulo %}{{ a.nome }}{% endblock %}
+{% block conteudo %}
+<p><a href="{{ url_for('responsaveis.ver', rid=a.responsavel.id) }}">← {{ a.responsavel.nome }}</a></p>
+<div class="cabecalho">
+  <div>
+    <p class="sutil">Ficha do animal</p>
+    <h1>{{ a.nome }} {% if a.obito %}<span class="badge st-cancelado">óbito</span>{% endif %}</h1>
+  </div>
+  <div class="botoes">
+    {% if pode_clinico %}
+      <a class="btn btn-primario" href="{{ url_for('clinica.nova_consulta', aid=a.id) }}">+ Anotação de consulta</a>
+      <a class="btn btn-primario" href="{{ url_for('clinica.nova_receita', aid=a.id) }}">+ Receita</a>
+    {% endif %}
+    {% if current_user.tem_perfil('recepcao') and not a.obito %}
+      <a class="btn btn-primario" href="{{ url_for('agenda.novo', responsavel_id=a.responsavel.id, animal_id=a.id) }}">Agendar</a>
+    {% endif %}
+    <a class="btn" href="{{ url_for('animais.editar', aid=a.id) }}">Editar ficha</a>
+    <a class="btn btn-sutil" href="{{ url_for('animais.historico', aid=a.id) }}">Histórico de alterações</a>
+  </div>
+</div>
+
+<div class="cartao">
+  <dl class="dados">
+    <div><dt>Espécie</dt><dd>{{ a.especie }}</dd></div>
+    <div><dt>Raça</dt><dd>{{ a.raca }}</dd></div>
+    <div><dt>Sexo</dt><dd>{{ a.sexo_nome }}</dd></div>
+    <div><dt>Idade</dt><dd>{{ a|idade }}</dd></div>
+    <div><dt>Castrado</dt><dd>{{ 'Sim' if a.castrado else 'Não' }}</dd></div>
+    <div><dt>Responsável</dt><dd>{{ a.responsavel.nome }} · {{ a.responsavel.telefone|telefone }}</dd></div>
+    {% if pode_clinico %}
+      <div><dt>Peso</dt><dd>{{ (a.peso_kg|string).replace('.', ',') ~ ' kg' if a.peso_kg is not none else '—' }}</dd></div>
+      <div><dt>Pelagem</dt><dd>{{ a.pelagem or '—' }}</dd></div>
+    {% endif %}
+  </dl>
+  {% if pode_clinico and (a.alergias or a.condicoes_cronicas or a.observacoes_clinicas) %}
+  <div class="clinico">
+    {% if a.alergias %}<p class="destaque-alerta"><b>Alergias:</b> {{ a.alergias }}</p>{% endif %}
+    {% if a.condicoes_cronicas %}<p><b>Condições crônicas:</b> {{ a.condicoes_cronicas }}</p>{% endif %}
+    {% if a.observacoes_clinicas %}<p><b>Observações:</b> {{ a.observacoes_clinicas }}</p>{% endif %}
+  </div>
+  {% endif %}
+</div>
+
+{% if pode_clinico %}
+<nav class="abas" data-abas>
+  <a href="#consultas">Consultas ({{ a.consultas|length }})</a>
+  <a href="#receitas">Receitas ({{ a.receitas|length }})</a>
+  <a href="#medicacoes">Medicações receitadas ({{ medicacoes|length }})</a>
+  <a href="#agendamentos">Agendamentos</a>
+</nav>
+
+<section id="consultas" class="aba">
+  <h2>Histórico de consultas</h2>
+  {% for c in a.consultas %}
+  <article class="cartao consulta" id="consulta-{{ c.id }}">
+    <div class="linha-meta">
+      <b>{{ c.data_hora|datahora }}</b> — {{ c.veterinario.nome }}
+      {% if c.motivo %} · <i>{{ c.motivo }}</i>{% endif %}
+      {% if c.peso_kg is not none %} · {{ (c.peso_kg|string).replace('.', ',') }} kg{% endif %}
+      {% if c.temperatura is not none %} · {{ (c.temperatura|string).replace('.', ',') }} °C{% endif %}
+    </div>
+    <div class="texto">{{ c.anotacao }}</div>
+    {% for ad in c.adendos %}
+      <div class="adendo"><small>Complemento em {{ ad.criado_em|datahora }} — {{ ad.autor.nome }}</small><div class="texto">{{ ad.texto }}</div></div>
+    {% endfor %}
+    <details class="nao-imprimir">
+      <summary>Adicionar complemento</summary>
+      <form method="post" action="{{ url_for('clinica.adendo', cid=c.id) }}">
+        {{ csrf() }}
+        <textarea name="texto" rows="3" required placeholder="As anotações não podem ser alteradas; registre aqui o complemento."></textarea>
+        <button class="btn btn-peq">Salvar complemento</button>
+      </form>
+    </details>
+  </article>
+  {% else %}
+  <p class="sutil">Nenhuma consulta registrada.</p>
+  {% endfor %}
+</section>
+
+<section id="receitas" class="aba">
+  <h2>Receitas emitidas</h2>
+  {% for rec in a.receitas %}
+  <article class="cartao">
+    <div class="linha-meta"><b>{{ rec.emitida_em|datahora }}</b> — {{ rec.veterinario.nome }}
+      <a class="btn btn-peq" href="{{ url_for('clinica.imprimir_receita', rid=rec.id) }}">Ver / imprimir</a></div>
+    <ul>
+      {% for it in rec.itens %}<li><b>{{ it.medicamento }}</b>{% if it.concentracao %} {{ it.concentracao }}{% endif %} — {{ it.posologia }}{% if it.duracao %} ({{ it.duracao }}){% endif %}</li>{% endfor %}
+    </ul>
+  </article>
+  {% else %}
+  <p class="sutil">Nenhuma receita emitida.</p>
+  {% endfor %}
+</section>
+
+<section id="medicacoes" class="aba">
+  <h2>Histórico de medicações receitadas</h2>
+  {% if medicacoes %}
+  <input type="search" class="filtro-tabela" data-filtra="tab-med" placeholder="Filtrar medicamento…">
+  <div class="tabela-rolagem">
+  <table class="tabela" id="tab-med">
+    <thead><tr><th>Data</th><th>Medicamento</th><th>Concentração</th><th>Via</th><th>Posologia</th><th>Duração</th><th>Veterinária</th></tr></thead>
+    {% for rec, it in medicacoes %}
+    <tr><td class="nowrap">{{ rec.emitida_em|data }}</td><td><b>{{ it.medicamento }}</b></td><td>{{ it.concentracao or '' }}</td><td>{{ it.via or '' }}</td><td>{{ it.posologia }}</td><td>{{ it.duracao or '' }}</td><td>{{ rec.veterinario.nome }}</td></tr>
+    {% endfor %}
+  </table>
+  </div>
+  {% else %}<p class="sutil">Nenhuma medicação receitada.</p>{% endif %}
+</section>
+{% endif %}
+
+<section id="agendamentos" class="aba">
+  <h2>Agendamentos</h2>
+  {% if agendamentos %}
+  <div class="tabela-rolagem">
+  <table class="tabela">
+    <thead><tr><th>Data</th><th>Observação</th><th>Situação</th></tr></thead>
+    {% for ag in agendamentos %}
+    <tr><td class="nowrap">{{ ag.data_hora|datahora }}</td><td>{{ ag.observacao or '' }}</td><td>{{ status_badge(ag) }}</td></tr>
+    {% endfor %}
+  </table>
+  </div>
+  {% else %}<p class="sutil">Nenhum agendamento.</p>{% endif %}
+</section>
+{% endblock %}

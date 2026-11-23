@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+{% from "_macros.html" import status_badge, csrf with context %}
+{% block titulo %}Agenda {{ data|data }}{% endblock %}
+{% block conteudo %}
+{% set dias = ['Segunda-feira','Terça-feira','Quarta-feira','Quinta-feira','Sexta-feira','Sábado','Domingo'] %}
+<div class="cabecalho">
+  <div>
+    <p class="sutil">Agendamentos do dia</p>
+    <h1>{{ dias[data.weekday()] }}, {{ data|data }} {% if data == hoje %}<span class="badge st-agendado">hoje</span>{% endif %}</h1>
+  </div>
+  <div class="botoes nao-imprimir">
+    <a class="btn" href="{{ url_for('agenda.painel', data=anterior.isoformat()) }}" aria-label="Dia anterior">◀</a>
+    <form method="get" class="linha">
+      <input type="date" name="data" value="{{ data.isoformat() }}" onchange="this.form.submit()" aria-label="Escolher data">
+    </form>
+    <a class="btn" href="{{ url_for('agenda.painel', data=proximo.isoformat()) }}" aria-label="Próximo dia">▶</a>
+    {% if data != hoje %}<a class="btn btn-sutil" href="{{ url_for('agenda.painel') }}">Hoje</a>{% endif %}
+    <button class="btn btn-sutil" onclick="window.print()">Imprimir</button>
+    {% if current_user.tem_perfil('recepcao') %}<a class="btn btn-primario" href="{{ url_for('agenda.novo') }}">+ Agendar</a>{% endif %}
+  </div>
+</div>
+
+{% if data.weekday() >= 5 %}<div class="alerta alerta-aviso">Fim de semana — não há atendimento.</div>{% endif %}
+
+<p class="resumo">
+  <b>{{ ags|length }}</b> agendamento(s)
+  {% for s, nome in STATUS.items() if contagem[s] %} · {{ nome }}: {{ contagem[s] }}{% endfor %}
+</p>
+
+{% if ags %}
+<div class="tabela-rolagem">
+<table class="tabela painel">
+  <thead><tr><th>Hora</th><th>Responsável</th><th>Animal</th><th>Telefone</th><th>Observação</th><th>Situação</th><th class="nao-imprimir"></th></tr></thead>
+  <tbody>
+  {% for ag in ags %}
+  <tr class="linha-{{ ag.status }}">
+    <td class="hora">{{ ag.data_hora|hora }}</td>
+    <td><a href="{{ url_for('responsaveis.ver', rid=ag.responsavel.id) }}">{{ ag.responsavel.nome }}</a></td>
+    <td><a href="{{ url_for('animais.ver', aid=ag.animal.id) }}"><b>{{ ag.animal.nome }}</b></a> <small class="sutil">{{ ag.animal.especie }}</small></td>
+    <td class="nowrap"><a href="tel:{{ ag.responsavel.telefone }}">{{ ag.responsavel.telefone|telefone }}</a></td>
+    <td class="obs">{{ ag.observacao or '' }}</td>
+    <td>{{ status_badge(ag) }}</td>
+    <td class="acoes nao-imprimir">
+      {% if current_user.tem_perfil('veterinaria') and ag.status in ('agendado', 'realizado') %}
+        <a class="btn btn-primario btn-peq" href="{{ url_for('clinica.nova_consulta', aid=ag.animal.id, agendamento_id=ag.id) }}">Atender</a>
+      {% endif %}
+      <form method="post" action="{{ url_for('agenda.alterar_status', agid=ag.id) }}" class="linha">
+        {{ csrf() }}
+        <input type="hidden" name="voltar" value="{{ request.full_path }}">
+        <select name="status" onchange="this.form.submit()" aria-label="Alterar situação">
+          {% for s, nome in STATUS.items() %}<option value="{{ s }}" {{ 'selected' if s == ag.status }}>{{ nome }}</option>{% endfor %}
+        </select>
+      </form>
+    </td>
+  </tr>
+  {% endfor %}
+  </tbody>
+</table>
+</div>
+{% else %}
+<div class="cartao vazio">Nenhum agendamento para esta data.</div>
+{% endif %}
+{% endblock %}

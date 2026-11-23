@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block titulo %}Histórico de alterações{% endblock %}
+{% block conteudo %}
+<p><a href="{{ voltar }}">← Voltar</a></p>
+<h1>Histórico de alterações</h1>
+<p class="sutil">{{ titulo }}</p>
+{% for log in logs %}
+<div class="cartao">
+  <div class="linha-meta"><b>{{ 'Cadastro inicial' if log.acao == 'criar' else 'Alteração' }}</b> — {{ log.criado_em|datahora }} por {{ log.usuario.nome if log.usuario else '—' }}</div>
+  <table class="tabela compacta">
+    {% if log.acao == 'criar' %}
+      {% for k, v in log.detalhes_dict.items() %}<tr><th>{{ k }}</th><td>{{ v if v is not none else '' }}</td></tr>{% endfor %}
+    {% else %}
+      <thead><tr><th>Campo</th><th>De</th><th>Para</th></tr></thead>
+      {% for k, v in log.detalhes_dict.items() %}<tr><th>{{ k }}</th><td>{{ v.de if v.de is not none else '' }}</td><td>{{ v.para if v.para is not none else '' }}</td></tr>{% endfor %}
+    {% endif %}
+  </table>
+</div>
+{% else %}
+<p class="sutil">Sem registros.</p>
+{% endfor %}
+{% endblock %}

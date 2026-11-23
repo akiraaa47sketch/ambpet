@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+{% from "_macros.html" import csrf with context %}
+{% block titulo %}Novo agendamento{% endblock %}
+{% block conteudo %}
+<p><a href="{{ url_for('agenda.novo') }}">← Trocar responsável</a></p>
+<h1>Novo agendamento</h1>
+<p class="sutil">Passo 2 de 2 — escolha o animal, a data e o horário.</p>
+
+<div class="cartao">
+  <b>{{ responsavel.nome }}</b> · CPF {{ responsavel.cpf|cpf }} · {{ responsavel.telefone|telefone }}
+</div>
+
+{% if not animais %}
+  <div class="alerta alerta-aviso">Este responsável não tem animais cadastrados.
+    <a href="{{ url_for('animais.novo', responsavel_id=responsavel.id) }}">Cadastrar animal</a></div>
+{% else %}
+<form method="post" class="cartao" novalidate>
+  {{ csrf() }}
+  <input type="hidden" name="responsavel_id" value="{{ responsavel.id }}">
+  <fieldset class="{{ 'com-erro' if erros.get('animal_id') }}">
+    <legend>Qual animal será atendido? <b class="obr">*</b></legend>
+    <div class="opcoes-cartao">
+      {% for a in animais %}
+      <label class="opcao-cartao">
+        <input type="radio" name="animal_id" value="{{ a.id }}" {{ 'checked' if dados.animal_id == a.id }} required>
+        <span><b>{{ a.nome }}</b><br><small>{{ a.especie }} · {{ a.raca }} · {{ a.sexo_nome }}</small></span>
+      </label>
+      {% endfor %}
+    </div>
+    {% if erros.get('animal_id') %}<small class="erro">{{ erros.animal_id }}</small>{% endif %}
+  </fieldset>
+
+  <div class="grade {{ 'com-erro' if erros.get('data') }}">
+    <label class="campo">
+      <span>Data <b class="obr">*</b></span>
+      <input type="date" name="data" value="{{ dados.data }}" required data-recarregar>
+      <small class="ajuda">Segunda a sexta-feira</small>
+    </label>
+    <label class="campo">
+      <span>Horário <b class="obr">*</b></span>
+      <select name="hora" required>
+        <option value="">—</option>
+        {% for h in horarios %}
+          <option value="{{ h }}" {{ 'selected' if dados.hora == h }}>{{ h }}{% if ocupados.get(h) %} — {{ ocupados[h] }} já agendado(s){% endif %}</option>
+        {% endfor %}
+      </select>
+      <small class="ajuda">Das 08:00 às 16:00</small>
+    </label>
+  </div>
+  {% if erros.get('data') %}<p class="erro">{{ erros.data }}</p>{% endif %}
+
+  <label class="campo">
+    <span>Observação</span>
+    <textarea name="observacao" rows="3" placeholder="Motivo da consulta, retorno, vacina…">{{ dados.observacao }}</textarea>
+  </label>
+  <div class="botoes"><button class="btn btn-primario">Confirmar agendamento</button></div>
+</form>
+{% endif %}
+{% endblock %}

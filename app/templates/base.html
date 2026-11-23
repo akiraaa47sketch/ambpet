@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block titulo %}{% endblock %} · {{ config.CLINICA_NOME }}</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+{% if current_user.is_authenticated %}
+<header class="topo nao-imprimir">
+  <a class="marca" href="{{ url_for('main.inicio') }}">🐾 {{ config.CLINICA_NOME }}</a>
+  <nav class="menu">
+    <a href="{{ url_for('agenda.painel') }}" class="{{ 'ativo' if request.blueprint == 'agenda' }}">Agenda do dia</a>
+    <a href="{{ url_for('responsaveis.lista') }}" class="{{ 'ativo' if request.blueprint in ('responsaveis', 'animais', 'clinica') }}">Responsáveis e animais</a>
+    {% if current_user.tem_perfil('recepcao') %}
+      <a href="{{ url_for('agenda.novo') }}">+ Agendar</a>
+    {% endif %}
+    {% if current_user.perfil == 'admin' %}
+      <a href="{{ url_for('admin.usuarios') }}" class="{{ 'ativo' if request.blueprint == 'admin' }}">Administração</a>
+    {% endif %}
+  </nav>
+  <form class="busca-topo" action="{{ url_for('main.busca') }}" method="get" role="search">
+    <input type="search" name="q" placeholder="Buscar nome, CPF, telefone ou animal" value="{{ request.args.get('q', '') if request.endpoint == 'main.busca' }}" aria-label="Buscar">
+  </form>
+  <div class="usuario">
+    <span>{{ current_user.nome }} <small>({{ current_user.perfil_nome }})</small></span>
+    <a href="{{ url_for('auth.minha_senha') }}">Senha</a>
+    <form method="post" action="{{ url_for('auth.logout') }}">
+      <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+      <button class="link">Sair</button>
+    </form>
+  </div>
+</header>
+{% endif %}
+<main class="conteudo">
+  {% with msgs = get_flashed_messages(with_categories=true) %}
+    {% for cat, msg in msgs %}<div class="alerta alerta-{{ cat }} nao-imprimir">{{ msg }}</div>{% endfor %}
+  {% endwith %}
+  {% block conteudo %}{% endblock %}
+</main>
+<script src="{{ url_for('static', filename='app.js') }}"></script>
+</body>
+</html>

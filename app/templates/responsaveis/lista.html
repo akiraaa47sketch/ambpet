@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+{% block titulo %}Responsáveis{% endblock %}
+{% block conteudo %}
+<div class="cabecalho">
+  <h1>Responsáveis e animais</h1>
+  {% if current_user.tem_perfil('recepcao') %}<a class="btn btn-primario" href="{{ url_for('responsaveis.novo') }}">+ Novo responsável</a>{% endif %}
+</div>
+<form class="barra-busca" method="get">
+  <input type="search" name="q" value="{{ q }}" placeholder="Nome, CPF, telefone ou nome do animal" autofocus>
+  <button class="btn">Buscar</button>
+</form>
+{% if not q %}<p class="sutil">Últimos cadastros:</p>{% endif %}
+{% if q and not itens %}<p class="sutil">Nada encontrado para “{{ q }}”.</p>{% endif %}
+{% include "_tabela_responsaveis.html" %}
+{% endblock %}
