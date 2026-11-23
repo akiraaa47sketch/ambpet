@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% from "_macros.html" import csrf with context %}
+{% block titulo %}Alterar senha{% endblock %}
+{% block conteudo %}
+<div class="cabecalho"><div><h1>Alterar senha</h1>
+  {% if obrigatoria %}<p class="sutil">Por segurança, defina uma senha pessoal antes de continuar.</p>{% endif %}</div></div>
+<div class="duas-colunas">
+  <form method="post" class="cartao">
+    {{ csrf() }}
+    <div class="campo"><label for="atual">{{ 'Senha temporária' if obrigatoria else 'Senha atual' }}</label><input id="atual" type="password" name="atual" required autocomplete="current-password"></div>
+    <div class="campo"><label for="nova">Nova senha</label><input id="nova" type="password" name="nova" minlength="10" maxlength="128" required autocomplete="new-password"></div>
+    <div class="campo"><label for="conf">Confirmar nova senha</label><input id="conf" type="password" name="confirmacao" minlength="10" required autocomplete="new-password"></div>
+    <div class="acoes-form"><button class="btn btn-primario">Salvar nova senha</button></div>
+  </form>
+  <div class="cartao cartao-info">
+    <h3>Como criar uma boa senha</h3>
+    <ul class="lista-simples">
+      <li>Pelo menos 10 caracteres — frases funcionam bem.</li>
+      <li>Misture maiúsculas, minúsculas e números.</li>
+      <li>Não use seu nome, login ou datas.</li>
+      <li>Não reutilize senhas de outros sites.</li>
+    </ul>
+    <p class="ajuda">Ao trocar a senha, todas as outras sessões abertas são encerradas.</p>
+  </div>
+</div>
+{% endblock %}

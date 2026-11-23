@@ -1,15 +1,26 @@
 {% extends "base.html" %}
-{% block titulo %}Responsáveis{% endblock %}
+{% from "_macros.html" import csrf, vazio with context %}
+{% block titulo %}Tutores e pacientes{% endblock %}
 {% block conteudo %}
 <div class="cabecalho">
-  <h1>Responsáveis e animais</h1>
-  {% if current_user.tem_perfil('recepcao') %}<a class="btn btn-primario" href="{{ url_for('responsaveis.novo') }}">+ Novo responsável</a>{% endif %}
+  <div><h1>Tutores e pacientes</h1>
+    <p class="sutil">{{ 'Resultados para a busca' if q else 'Cadastros mais recentes' }}</p></div>
+  {% if current_user.tem_perfil('recepcao') %}<a class="btn btn-primario" href="{{ url_for('responsaveis.novo') }}">{{ icone('mais') }} Novo tutor</a>{% endif %}
 </div>
-<form class="barra-busca" method="get">
-  <input type="search" name="q" value="{{ q }}" placeholder="Nome, CPF, telefone ou nome do animal" autofocus>
-  <button class="btn">Buscar</button>
+<form class="busca-pagina" method="post">
+  {{ csrf() }}
+  <input type="search" name="q" value="{{ q }}" placeholder="Nome do tutor, CPF, telefone ou nome do paciente" autofocus>
+  <button class="btn">{{ icone('busca') }} Buscar</button>
+  {% if q %}<a class="btn btn-fantasma" href="{{ url_for('responsaveis.lista') }}">Limpar</a>{% endif %}
 </form>
-{% if not q %}<p class="sutil">Últimos cadastros:</p>{% endif %}
-{% if q and not itens %}<p class="sutil">Nada encontrado para “{{ q }}”.</p>{% endif %}
-{% include "_tabela_responsaveis.html" %}
+{% if not itens %}
+  {% if q %}
+    {% call vazio('Nenhum cadastro encontrado', 'Confira a grafia ou busque pelo CPF ou telefone completos.', 'busca') %}
+      {% if current_user.tem_perfil('recepcao') %}<a class="btn btn-primario" href="{{ url_for('responsaveis.novo') }}">Cadastrar tutor</a>{% endif %}
+    {% endcall %}
+  {% else %}
+    {{ vazio('Nenhum tutor cadastrado ainda', 'Comece cadastrando o tutor e, em seguida, o paciente.', 'usuarios') }}
+  {% endif %}
+{% endif %}
+{% with modo = 'abrir' %}{% include "_lista_tutores.html" %}{% endwith %}
 {% endblock %}

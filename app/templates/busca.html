@@ -1,10 +1,18 @@
 {% extends "base.html" %}
+{% from "_macros.html" import csrf, vazio with context %}
 {% block titulo %}Busca{% endblock %}
 {% block conteudo %}
-<h1>Busca: “{{ q }}”</h1>
-{% if not resultados %}
-  <p class="sutil">Nenhum responsável ou animal encontrado.</p>
-  {% if current_user.tem_perfil('recepcao') %}<a class="btn btn-primario" href="{{ url_for('responsaveis.novo') }}">Cadastrar novo responsável</a>{% endif %}
+<div class="cabecalho"><div><h1>Resultado da busca</h1>
+  {% if q %}<p class="sutil">{{ resultados|length }} tutor(es) encontrado(s)</p>{% endif %}</div></div>
+<form class="busca-pagina" method="post">
+  {{ csrf() }}
+  <input type="search" name="q" value="{{ q }}" placeholder="Nome do tutor, CPF, telefone ou nome do paciente" autofocus>
+  <button class="btn">{{ icone('busca') }} Buscar</button>
+</form>
+{% if q and not resultados %}
+  {% call vazio('Nenhum cadastro encontrado', 'Busque pelo início do nome, CPF ou telefone completos, ou pelo nome do paciente.', 'busca') %}
+    {% if current_user.tem_perfil('recepcao') %}<a class="btn btn-primario" href="{{ url_for('responsaveis.novo') }}">{{ icone('mais') }} Cadastrar tutor</a>{% endif %}
+  {% endcall %}
 {% endif %}
-{% with itens = resultados %}{% include "_tabela_responsaveis.html" %}{% endwith %}
+{% with itens = resultados, modo = 'abrir' %}{% include "_lista_tutores.html" %}{% endwith %}
 {% endblock %}

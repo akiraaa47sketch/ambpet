@@ -1,55 +1,69 @@
 {% extends "base.html" %}
-{% from "_macros.html" import status_badge with context %}
+{% from "_macros.html" import status, avatar_paciente, vazio with context %}
 {% block titulo %}{{ r.nome }}{% endblock %}
 {% block conteudo %}
+<nav class="migalhas"><a href="{{ url_for('responsaveis.lista') }}">Tutores</a> <span>/</span> {{ r.nome }}</nav>
 <div class="cabecalho">
-  <div>
-    <p class="sutil">Responsável</p>
-    <h1>{{ r.nome }}</h1>
-  </div>
+  <div><p class="sobretitulo">Tutor</p><h1>{{ r.nome }}</h1></div>
   <div class="botoes">
+    <a class="btn btn-fantasma" href="{{ url_for('responsaveis.historico', rid=r.id) }}">{{ icone('historico') }} Histórico</a>
     {% if current_user.tem_perfil('recepcao') %}
-      <a class="btn btn-primario" href="{{ url_for('agenda.novo', responsavel_id=r.id) }}">Agendar consulta</a>
-      <a class="btn" href="{{ url_for('responsaveis.editar', rid=r.id) }}">Editar</a>
+      <a class="btn" href="{{ url_for('responsaveis.editar', rid=r.id) }}">{{ icone('editar') }} Editar</a>
+      <a class="btn btn-primario" href="{{ url_for('agenda.novo', responsavel_id=r.id) }}">{{ icone('calendario-mais') }} Agendar</a>
     {% endif %}
-    <a class="btn btn-sutil" href="{{ url_for('responsaveis.historico', rid=r.id) }}">Histórico de alterações</a>
   </div>
 </div>
 
-<div class="cartao">
-  <dl class="dados">
-    <div><dt>CPF</dt><dd>{{ r.cpf|cpf }}</dd></div>
-    <div><dt>Telefone</dt><dd><a href="tel:{{ r.telefone }}">{{ r.telefone|telefone }}</a></dd></div>
-    <div><dt>Ano do CadÚnico</dt><dd>{{ r.ano_cadunico }}</dd></div>
-    <div class="largo"><dt>Endereço</dt><dd>{{ r.endereco_completo }}</dd></div>
-  </dl>
-</div>
+<div class="layout-lateral">
+  <div>
+    <section>
+      <div class="titulo-secao"><h2>Pacientes</h2>
+        {% if current_user.tem_perfil('recepcao') %}<a class="btn btn-peq" href="{{ url_for('animais.novo', responsavel_id=r.id) }}">{{ icone('mais') }} Novo paciente</a>{% endif %}</div>
+      {% if r.animais %}
+      <div class="cartoes-pacientes">
+        {% for a in r.animais %}
+        <a class="cartao-paciente" href="{{ url_for('animais.ver', aid=a.id) }}">
+          {{ avatar_paciente(a) }}
+          <span class="cp-info">
+            <b>{{ a.nome }}</b>
+            <span>{{ a.especie }} · {{ a.raca }}</span>
+            <span>{{ a.sexo_nome }} · {{ a|idade }}{{ ' · castrado' ~ ('a' if a.sexo == 'F' else '') if a.castrado }}</span>
+          </span>
+          {% if a.obito %}<span class="status st-cancelado">Óbito</span>{% endif %}
+        </a>
+        {% endfor %}
+      </div>
+      {% else %}
+        {{ vazio('Nenhum paciente cadastrado', '', 'pata') }}
+      {% endif %}
+    </section>
 
-<div class="cabecalho">
-  <h2>Animais ({{ r.animais|length }})</h2>
-  {% if current_user.tem_perfil('recepcao') %}<a class="btn" href="{{ url_for('animais.novo', responsavel_id=r.id) }}">+ Cadastrar animal</a>{% endif %}
-</div>
-<div class="cartoes-animais">
-{% for a in r.animais %}
-  <a class="cartao cartao-animal" href="{{ url_for('animais.ver', aid=a.id) }}">
-    <b>{{ a.nome }}</b>{% if a.obito %} <span class="badge st-cancelado">óbito</span>{% endif %}
-    <span>{{ a.especie }} · {{ a.raca }}</span>
-    <span>{{ a.sexo_nome }} · {{ a|idade }} · {{ 'Castrado(a)' if a.castrado else 'Não castrado(a)' }}</span>
-  </a>
-{% else %}
-  <p class="sutil">Nenhum animal cadastrado.</p>
-{% endfor %}
-</div>
+    <section>
+      <div class="titulo-secao"><h2>Agendamentos</h2></div>
+      {% if agendamentos %}
+      <div class="tabela-caixa">
+      <table class="tabela">
+        <thead><tr><th>Data</th><th>Paciente</th><th>Tipo</th><th>Situação</th></tr></thead>
+        {% for ag in agendamentos %}
+        <tr><td class="nowrap"><a href="{{ url_for('agenda.dia', data=ag.data_hora.date().isoformat()) }}">{{ ag.data_hora|datahora }}</a></td>
+          <td>{{ ag.animal.nome }}</td><td>{{ ag.tipo }}</td><td>{{ status(ag) }}</td></tr>
+        {% endfor %}
+      </table>
+      </div>
+      {% else %}<p class="sutil">Nenhum agendamento.</p>{% endif %}
+    </section>
+  </div>
 
-<h2>Agendamentos recentes</h2>
-{% if agendamentos %}
-<div class="tabela-rolagem">
-<table class="tabela">
-  <thead><tr><th>Data</th><th>Animal</th><th>Observação</th><th>Situação</th></tr></thead>
-  {% for ag in agendamentos %}
-  <tr><td class="nowrap">{{ ag.data_hora|datahora }}</td><td>{{ ag.animal.nome }}</td><td>{{ ag.observacao or '' }}</td><td>{{ status_badge(ag) }}</td></tr>
-  {% endfor %}
-</table>
+  <aside class="cartao ficha-lateral">
+    <h3>Contato</h3>
+    <dl class="dl">
+      <dt>Telefone</dt><dd><a href="tel:+55{{ r.telefone }}">{{ r.telefone|telefone }}</a></dd>
+      <dt>CPF</dt><dd>{{ r.cpf|cpf }}</dd>
+      <dt>Endereço</dt><dd>{{ r.endereco_completo }}</dd>
+      <dt>CadÚnico</dt><dd>{{ r.ano_cadunico }}</dd>
+    </dl>
+    <h3>Privacidade</h3>
+    <p class="pequeno sutil">Aviso de privacidade v{{ r.aviso_privacidade_versao }} apresentado em {{ r.aviso_privacidade_em|data }}.<br>Cadastro em {{ r.criado_em|data }}.</p>
+  </aside>
 </div>
-{% else %}<p class="sutil">Nenhum agendamento.</p>{% endif %}
 {% endblock %}

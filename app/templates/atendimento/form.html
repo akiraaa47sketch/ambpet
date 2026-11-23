@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+{% from "_macros.html" import campo, texto, csrf, avatar_paciente with context %}
+{% block titulo %}Atendimento — {{ a.nome }}{% endblock %}
+{% block conteudo %}
+<nav class="migalhas"><a href="{{ url_for('agenda.dia') }}">Agenda</a> <span>/</span> <a href="{{ url_for('animais.ver', aid=a.id) }}">{{ a.nome }}</a> <span>/</span> Atendimento</nav>
+
+<section class="banner-paciente compacto">
+  {{ avatar_paciente(a) }}
+  <div class="bp-principal">
+    <h1>{{ a.nome }}</h1>
+    <p class="bp-dados"><span>{{ a.especie }}</span><span>{{ a.raca }}</span><span>{{ a.sexo_nome }}</span><span>{{ a|idade }}</span>
+      <span>{{ 'Castrado' if a.castrado else 'Não castrado' }}</span>{% if a.peso_kg is not none %}<span>Último peso {{ a.peso_kg|num(2) }} kg</span>{% endif %}</p>
+    {% if a.alergias %}<p class="alerta-clinico">{{ icone('alerta') }} <b>Alergias:</b> {{ a.alergias }}</p>{% endif %}
+  </div>
+  <div class="bp-tutor"><p class="sobretitulo">Tutor</p><b>{{ a.responsavel.nome }}</b>
+    <span class="meta">{{ a.responsavel.telefone|telefone }}</span></div>
+</section>
+
+<div class="layout-lateral">
+<form method="post" class="form-secoes" novalidate>
+  {{ csrf() }}
+  {% if ag %}<input type="hidden" name="agendamento_id" value="{{ ag.id }}">{% endif %}
+  {% if erros.get('soap') %}<div class="alerta alerta-erro">{{ erros.soap }}</div>{% endif %}
+
+  <section class="cartao secao-form">
+    <header class="cab-linha"><h2>Atendimento</h2>
+      <div class="campo campo-inline"><label for="f-tipo">Tipo</label>
+        <select id="f-tipo" name="tipo">{% for t in tipos %}<option {{ 'selected' if dados.tipo == t }}>{{ t }}</option>{% endfor %}</select></div>
+    </header>
+    {{ texto('queixa', 'Queixa principal / motivo', dados, erros, 2) }}
+  </section>
+
+  <section class="cartao secao-form">
+    <header><h2>Sinais vitais</h2></header>
+    <div class="grade g-4">
+      {{ campo('peso_kg', 'Peso (kg)', dados, erros, obrigatorio=false, extra='inputmode="decimal" placeholder="0,0"') }}
+      {{ campo('temperatura', 'Temperatura (°C)', dados, erros, obrigatorio=false, extra='inputmode="decimal" placeholder="38,5"') }}
+      {{ campo('freq_cardiaca', 'FC (bpm)', dados, erros, tipo='number', obrigatorio=false, extra='min="10" max="400"') }}
+      {{ campo('freq_respiratoria', 'FR (mpm)', dados, erros, tipo='number', obrigatorio=false, extra='min="2" max="200"') }}
+      <div class="campo"><label for="f-muc">Mucosas <span class="opcional">opcional</span></label>
+        <select id="f-muc" name="mucosas"><option value="">—</option>{% for m in mucosas %}<option {{ 'selected' if dados.mucosas == m }}>{{ m }}</option>{% endfor %}</select></div>
+      <div class="campo"><label for="f-hid">Hidratação <span class="opcional">opcional</span></label>
+        <select id="f-hid" name="hidratacao"><option value="">—</option>{% for m in hidratacao %}<option {{ 'selected' if dados.hidratacao == m }}>{{ m }}</option>{% endfor %}</select></div>
+      {{ campo('tpc', 'TPC (s)', dados, erros, obrigatorio=false, extra='maxlength="10" placeholder="< 2"') }}
+    </div>
+  </section>
+
+  <section class="cartao secao-form">
+    <header><h2>Prontuário</h2><p class="sutil">Formato SOAP. Após salvar, o registro não pode ser editado — apenas complementado.</p></header>
+    {{ texto('anamnese', 'S — Anamnese / histórico', dados, erros, 4, placeholder='Relato do tutor, evolução, alimentação, vacinação, vermifugação…') }}
+    {{ texto('exame_fisico', 'O — Exame físico', dados, erros, 4, placeholder='Achados do exame clínico por sistema…') }}
+    {{ texto('diagnostico', 'A — Diagnóstico / suspeita clínica', dados, erros, 2) }}
+    {{ texto('conduta', 'P — Conduta / plano terapêutico', dados, erros, 3, placeholder='Tratamento, exames solicitados, orientações, retorno…') }}
+  </section>
+
+  <div class="barra-acoes fixa">
+    <a class="btn btn-fantasma" href="{{ url_for('animais.ver', aid=a.id) }}">Cancelar</a>
+    <button class="btn" name="acao" value="salvar">Salvar e finalizar</button>
+    <button class="btn btn-primario" name="acao" value="receita">{{ icone('receita') }} Salvar e prescrever</button>
+  </div>
+</form>
+
+<aside class="historico-lateral">
+  <h3>Últimos atendimentos</h3>
+  {% for c in anteriores %}
+  <div class="cartao mini">
+    <p class="pequeno"><b>{{ c.data_hora|data }}</b> · {{ c.tipo }}</p>
+    {% if c.diagnostico %}<p class="pequeno"><span class="sutil">Diag.:</span> {{ c.diagnostico|truncate(140) }}</p>{% endif %}
+    {% if c.conduta %}<p class="pequeno"><span class="sutil">Conduta:</span> {{ c.conduta|truncate(140) }}</p>{% endif %}
+  </div>
+  {% else %}<p class="sutil pequeno">Primeiro atendimento deste paciente.</p>{% endfor %}
+  {% if a.condicoes_cronicas %}<h3>Condições crônicas</h3><p class="pequeno">{{ a.condicoes_cronicas }}</p>{% endif %}
+</aside>
+</div>
+{% endblock %}

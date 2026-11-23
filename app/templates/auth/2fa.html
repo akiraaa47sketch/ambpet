@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% from "_macros.html" import csrf with context %}
+{% block titulo %}Verificação em duas etapas{% endblock %}
+{% block conteudo %}
+<div class="cabecalho"><div><h1>Verificação em duas etapas</h1>
+  <p class="sutil">Além da senha, o acesso pede um código gerado no seu celular.</p></div></div>
+{% if qr %}
+<div class="duas-colunas">
+  <div class="cartao">
+    <ol class="passos">
+      <li>Instale um aplicativo autenticador no celular (Google Authenticator, Microsoft Authenticator ou Authy).</li>
+      <li>No aplicativo, escolha <b>Adicionar conta</b> e leia o QR code ao lado.</li>
+      <li>Digite abaixo o código de 6 dígitos que aparecer.</li>
+    </ol>
+    <form method="post">
+      {{ csrf() }}
+      <div class="campo"><label for="codigo">Código de 6 dígitos</label>
+        <input id="codigo" name="codigo" class="codigo-otp" inputmode="numeric" autocomplete="one-time-code" maxlength="7" required autofocus></div>
+      <div class="acoes-form"><button class="btn btn-primario">Ativar</button></div>
+    </form>
+    {% if obrigatorio %}<p class="ajuda">Obrigatório para todos os usuários desta clínica.</p>{% endif %}
+  </div>
+  <div class="cartao centro">
+    <img class="qr" src="{{ qr }}" alt="QR code para o aplicativo autenticador" width="220" height="220">
+    <p class="ajuda">Não consegue ler? Digite a chave manualmente:</p>
+    <code class="chave-manual">{{ segredo }}</code>
+  </div>
+</div>
+{% else %}
+<div class="cartao estreito">
+  <p class="linha-icone ok">{{ icone('check') }} Ativada para sua conta.</p>
+  {% if not obrigatorio %}
+  <form method="post" class="form-linha" data-confirmar="Desativar a verificação em duas etapas reduz a segurança da sua conta. Continuar?">
+    {{ csrf() }}<input type="hidden" name="acao" value="desativar">
+    <div class="campo"><label for="senha">Senha</label><input id="senha" type="password" name="senha" required autocomplete="current-password"></div>
+    <button class="btn btn-perigo">Desativar</button>
+  </form>
+  {% else %}
+  <p class="ajuda">Trocou de celular? Peça ao administrador para redefinir sua verificação.</p>
+  {% endif %}
+</div>
+{% endif %}
+{% endblock %}

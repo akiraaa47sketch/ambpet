@@ -4,3 +4,8 @@ Flask-Login==0.6.3
 SQLAlchemy==2.1.9
 Werkzeug==3.1.9
 gunicorn==27.0.1
+psycopg[binary]==3.3.9
+cryptography==50.0.2
+pyotp==2.12.1
+qrcode==8.2
+python-dotenv==1.2.4

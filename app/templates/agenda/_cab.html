@@ -1,0 +1,15 @@
+{# cabeçalho comum das visões de agenda: modo = 'dia' | 'semana' #}
+<div class="agenda-cab nao-imprimir">
+  <div class="agenda-nav">
+    <a class="btn-icone" href="{{ url_for('agenda.' ~ modo, data=anterior.isoformat()) }}" aria-label="Anterior">{{ icone('esquerda') }}</a>
+    <a class="btn btn-peq" href="{{ url_for('agenda.' ~ modo) }}">Hoje</a>
+    <a class="btn-icone" href="{{ url_for('agenda.' ~ modo, data=proximo.isoformat()) }}" aria-label="Próximo">{{ icone('direita') }}</a>
+    <form method="get" action="{{ url_for('agenda.' ~ modo) }}">
+      <input type="date" name="data" value="{{ data_ref.isoformat() }}" aria-label="Ir para a data" data-enviar-ao-mudar>
+    </form>
+  </div>
+  <div class="alternador" role="group" aria-label="Visualização">
+    <a href="{{ url_for('agenda.dia', data=data_ref.isoformat()) }}" class="{{ 'ativo' if modo == 'dia' }}">{{ icone('lista') }} Dia</a>
+    <a href="{{ url_for('agenda.semana', data=data_ref.isoformat()) }}" class="{{ 'ativo' if modo == 'semana' }}">{{ icone('grade') }} Semana</a>
+  </div>
+</div>

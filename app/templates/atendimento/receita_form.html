@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+{% from "_macros.html" import csrf, avatar_paciente with context %}
+{% block titulo %}Receita — {{ a.nome }}{% endblock %}
+{% block conteudo %}
+<nav class="migalhas"><a href="{{ url_for('animais.ver', aid=a.id) }}">{{ a.nome }}</a> <span>/</span> Nova receita</nav>
+<section class="banner-paciente compacto">
+  {{ avatar_paciente(a) }}
+  <div class="bp-principal">
+    <h1>Nova receita</h1>
+    <p class="bp-dados"><span>{{ a.nome }}</span><span>{{ a.especie }} · {{ a.raca }}</span><span>{{ a|idade }}</span>{% if a.peso_kg is not none %}<span>{{ a.peso_kg|num(2) }} kg</span>{% endif %}</p>
+    {% if a.alergias %}<p class="alerta-clinico">{{ icone('alerta') }} <b>Alergias:</b> {{ a.alergias }}</p>{% endif %}
+  </div>
+</section>
+
+<form method="post" class="form-secoes" novalidate>
+  {{ csrf() }}
+  {% if consulta_id %}<input type="hidden" name="consulta_id" value="{{ consulta_id }}">{% endif %}
+  <section class="cartao secao-form">
+    <header><h2>Tipo de receituário</h2></header>
+    <div class="segmentado">
+      {% for k, nome in tipos.items() %}<label><input type="radio" name="tipo" value="{{ k }}" {{ 'checked' if tipo == k }}><span>{{ nome }}</span></label>{% endfor %}
+    </div>
+    <p class="ajuda">Use controle especial para medicamentos sujeitos a controle (impressão em duas vias, com identificação do comprador).</p>
+  </section>
+
+  <section class="cartao secao-form {{ 'com-erro' if erros.get('itens') }}">
+    <header><h2>Medicamentos</h2></header>
+    {% if erros.get('itens') %}<p class="msg-erro">{{ erros.itens }}</p>{% endif %}
+    <div id="itens" class="itens-receita">
+      {% for it in itens %}
+      <fieldset class="item-receita">
+        <legend>Item <span data-num>{{ loop.index }}</span></legend>
+        <div class="grade g-6">
+          <div class="campo s-3"><label>Medicamento</label><input name="medicamento" list="sugestoes" value="{{ it.get('medicamento', '') }}" autocomplete="off"></div>
+          <div class="campo"><label>Concentração <span class="opcional">opc.</span></label><input name="concentracao" placeholder="50 mg" value="{{ it.get('concentracao', '') }}"></div>
+          <div class="campo"><label>Quantidade <span class="opcional">opc.</span></label><input name="quantidade" placeholder="1 caixa" value="{{ it.get('quantidade', '') }}"></div>
+          <div class="campo"><label>Via</label><input name="via" list="vias" placeholder="Oral" value="{{ it.get('via', '') }}"></div>
+          <div class="campo s-4"><label>Posologia</label><input name="posologia" placeholder="1 comprimido a cada 12 horas" value="{{ it.get('posologia', '') }}"></div>
+          <div class="campo s-2"><label>Duração <span class="opcional">opc.</span></label><input name="duracao" placeholder="7 dias" value="{{ it.get('duracao', '') }}"></div>
+        </div>
+        <button type="button" class="btn-icone remover-item" data-remover-item aria-label="Remover item">{{ icone('x') }}</button>
+      </fieldset>
+      {% endfor %}
+    </div>
+    <button type="button" class="btn" id="add-item">{{ icone('mais') }} Adicionar medicamento</button>
+    <datalist id="sugestoes">{% for m in sugestoes %}<option>{{ m }}</option>{% endfor %}</datalist>
+    <datalist id="vias"><option>Oral</option><option>Tópica</option><option>Oftálmica</option><option>Otológica</option><option>Subcutânea</option><option>Intramuscular</option><option>Intravenosa</option><option>Retal</option></datalist>
+  </section>
+
+  <section class="cartao secao-form">
+    <header><h2>Orientações ao tutor</h2></header>
+    <div class="campo"><label for="f-or" class="sr">Orientações</label>
+      <textarea id="f-or" name="orientacoes" rows="4" placeholder="Administrar com alimento, retorno em 10 dias…">{{ orientacoes }}</textarea></div>
+  </section>
+
+  <div class="barra-acoes fixa">
+    <a class="btn btn-fantasma" href="{{ url_for('animais.ver', aid=a.id) }}">Cancelar</a>
+    <button class="btn btn-primario">{{ icone('impressora') }} Emitir e imprimir</button>
+  </div>
+</form>
+{% endblock %}

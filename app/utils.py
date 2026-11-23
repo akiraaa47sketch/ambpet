@@ -89,7 +89,7 @@ def validar_horario_agendamento(data_hora, permitir_passado=False):
     return None
 
 
-def horarios_disponiveis(intervalo_min=15):
+def horarios_disponiveis(intervalo_min=30):
     out = []
     m = HORA_INICIO.hour * 60 + HORA_INICIO.minute
     fim = HORA_FIM.hour * 60 + HORA_FIM.minute

@@ -3,42 +3,80 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>{% block titulo %}{% endblock %} · {{ config.CLINICA_NOME }}</title>
+  <meta name="robots" content="noindex, nofollow">
+  <title>{% block titulo %}{% endblock %} — {{ config.CLINICA_NOME }}</title>
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
-<body>
-{% if current_user.is_authenticated %}
-<header class="topo nao-imprimir">
-  <a class="marca" href="{{ url_for('main.inicio') }}">🐾 {{ config.CLINICA_NOME }}</a>
-  <nav class="menu">
-    <a href="{{ url_for('agenda.painel') }}" class="{{ 'ativo' if request.blueprint == 'agenda' }}">Agenda do dia</a>
-    <a href="{{ url_for('responsaveis.lista') }}" class="{{ 'ativo' if request.blueprint in ('responsaveis', 'animais', 'clinica') }}">Responsáveis e animais</a>
-    {% if current_user.tem_perfil('recepcao') %}
-      <a href="{{ url_for('agenda.novo') }}">+ Agendar</a>
-    {% endif %}
-    {% if current_user.perfil == 'admin' %}
-      <a href="{{ url_for('admin.usuarios') }}" class="{{ 'ativo' if request.blueprint == 'admin' }}">Administração</a>
-    {% endif %}
-  </nav>
-  <form class="busca-topo" action="{{ url_for('main.busca') }}" method="get" role="search">
-    <input type="search" name="q" placeholder="Buscar nome, CPF, telefone ou animal" value="{{ request.args.get('q', '') if request.endpoint == 'main.busca' }}" aria-label="Buscar">
-  </form>
-  <div class="usuario">
-    <span>{{ current_user.nome }} <small>({{ current_user.perfil_nome }})</small></span>
-    <a href="{{ url_for('auth.minha_senha') }}">Senha</a>
-    <form method="post" action="{{ url_for('auth.logout') }}">
-      <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
-      <button class="link">Sair</button>
-    </form>
+<body class="{% block classe_body %}{% endblock %}" data-viacep="{{ '1' if config.USAR_VIACEP else '0' }}">
+{% if current_user.is_authenticated and not esconder_menu %}
+<div class="app">
+  <aside class="lateral" id="lateral">
+    <div class="lateral-topo">
+      <a class="marca" href="{{ url_for('main.inicio') }}">
+        <span class="marca-simbolo">{{ icone('pata') }}</span>
+        <span class="marca-nome">{{ config.CLINICA_NOME }}</span>
+      </a>
+    </div>
+    <nav class="nav" aria-label="Principal">
+      {% set ep = request.endpoint or '' %}
+      <p class="nav-grupo">Atendimento</p>
+      <a href="{{ url_for('agenda.dia') }}" class="{{ 'ativo' if ep.startswith('agenda.') or ep.startswith('atendimento.') }}">{{ icone('calendario') }} Agenda</a>
+      <a href="{{ url_for('responsaveis.lista') }}" class="{{ 'ativo' if ep.startswith('responsaveis.') or ep.startswith('animais.') or ep == 'main.busca' }}">{{ icone('usuarios') }} Tutores e pacientes</a>
+      {% if current_user.perfil == 'admin' %}
+      <p class="nav-grupo">Administração</p>
+      <a href="{{ url_for('admin.usuarios') }}" class="{{ 'ativo' if ep.startswith('admin.usuario') or ep == 'admin.redefinir' }}">{{ icone('usuario') }} Usuários</a>
+      <a href="{{ url_for('admin.auditoria') }}" class="{{ 'ativo' if ep == 'admin.auditoria' }}">{{ icone('historico') }} Auditoria</a>
+      <a href="{{ url_for('admin.lgpd') }}" class="{{ 'ativo' if ep == 'admin.lgpd' }}">{{ icone('escudo') }} LGPD — Titulares</a>
+      {% endif %}
+    </nav>
+    <div class="lateral-rodape">
+      <details class="conta">
+        <summary>
+          <span class="avatar">{{ current_user.iniciais }}</span>
+          <span class="conta-texto"><b>{{ current_user.nome }}</b><small>{{ current_user.perfil_nome }}</small></span>
+        </summary>
+        <div class="conta-menu">
+          <a href="{{ url_for('auth.trocar_senha') }}">{{ icone('chave') }} Alterar senha</a>
+          <a href="{{ url_for('auth.configurar_2fa') }}">{{ icone('cadeado') }} Verificação em 2 etapas</a>
+          <a href="{{ url_for('lgpd.meus_acessos') }}">{{ icone('historico') }} Meus acessos</a>
+          <a href="{{ url_for('lgpd.aviso') }}">{{ icone('escudo') }} Aviso de privacidade</a>
+          <form method="post" action="{{ url_for('auth.logout') }}">
+            <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+            <button type="submit">{{ icone('sair') }} Sair</button>
+          </form>
+        </div>
+      </details>
+    </div>
+  </aside>
+  <div class="principal">
+    <header class="barra nao-imprimir">
+      <button class="btn-icone menu-movel" type="button" data-alternar-menu aria-label="Abrir menu">{{ icone('menu') }}</button>
+      <form class="busca-global" method="post" action="{{ url_for('main.busca') }}" role="search">
+        <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+        {{ icone('busca') }}
+        <input type="search" name="q" placeholder="Buscar tutor, CPF, telefone ou paciente" aria-label="Buscar" autocomplete="off" data-atalho-busca>
+        <kbd>/</kbd>
+      </form>
+      {% if current_user.tem_perfil('recepcao') %}
+      <a class="btn btn-primario" href="{{ url_for('agenda.novo') }}">{{ icone('calendario-mais') }} <span class="so-largo">Novo agendamento</span></a>
+      {% endif %}
+    </header>
+    <main class="conteudo" id="conteudo">
+      {% with msgs = get_flashed_messages(with_categories=true) %}
+        {% for cat, msg in msgs %}<div class="alerta alerta-{{ cat }} nao-imprimir" role="status">{{ msg }}</div>{% endfor %}
+      {% endwith %}
+      {% block conteudo %}{% endblock %}
+    </main>
   </div>
-</header>
-{% endif %}
-<main class="conteudo">
+</div>
+{% else %}
+<main class="tela-simples">
   {% with msgs = get_flashed_messages(with_categories=true) %}
-    {% for cat, msg in msgs %}<div class="alerta alerta-{{ cat }} nao-imprimir">{{ msg }}</div>{% endfor %}
+    {% for cat, msg in msgs %}<div class="alerta alerta-{{ cat }}" role="status">{{ msg }}</div>{% endfor %}
   {% endwith %}
-  {% block conteudo %}{% endblock %}
+  {% block simples %}{% endblock %}
 </main>
+{% endif %}
 <script src="{{ url_for('static', filename='app.js') }}"></script>
 </body>
 </html>

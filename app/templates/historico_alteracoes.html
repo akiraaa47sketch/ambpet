@@ -1,22 +1,32 @@
 {% extends "base.html" %}
 {% block titulo %}Histórico de alterações{% endblock %}
+{% set rotulos = {'nome':'Nome','cpf':'CPF','telefone':'Telefone','cep':'CEP','logradouro':'Logradouro','numero':'Número','complemento':'Complemento','bairro':'Bairro','cidade':'Cidade','uf':'UF','ano_cadunico':'Ano do CadÚnico','sexo':'Sexo','especie':'Espécie','raca':'Raça','idade_anos':'Idade (anos)','idade_meses':'Idade (meses)','idade_referencia':'Idade informada em','castrado':'Castrado','peso_kg':'Peso (kg)','pelagem':'Pelagem','alergias':'Alergias','condicoes_cronicas':'Condições crônicas','observacoes_clinicas':'Observações clínicas','obito':'Óbito'} %}
+{% macro v(x) %}{% if x is none or x == '' %}<span class="sutil">vazio</span>{% elif x is sameas true %}Sim{% elif x is sameas false %}Não{% else %}{{ x }}{% endif %}{% endmacro %}
 {% block conteudo %}
-<p><a href="{{ voltar }}">← Voltar</a></p>
-<h1>Histórico de alterações</h1>
-<p class="sutil">{{ titulo }}</p>
+<nav class="migalhas"><a href="{{ voltar }}">{{ icone('esquerda') }} {{ titulo }}</a></nav>
+<div class="cabecalho"><div><p class="sobretitulo">{{ subtitulo }}</p><h1>Histórico de alterações</h1></div></div>
+<ol class="linha-tempo">
 {% for log in logs %}
-<div class="cartao">
-  <div class="linha-meta"><b>{{ 'Cadastro inicial' if log.acao == 'criar' else 'Alteração' }}</b> — {{ log.criado_em|datahora }} por {{ log.usuario.nome if log.usuario else '—' }}</div>
-  <table class="tabela compacta">
-    {% if log.acao == 'criar' %}
-      {% for k, v in log.detalhes_dict.items() %}<tr><th>{{ k }}</th><td>{{ v if v is not none else '' }}</td></tr>{% endfor %}
-    {% else %}
-      <thead><tr><th>Campo</th><th>De</th><th>Para</th></tr></thead>
-      {% for k, v in log.detalhes_dict.items() %}<tr><th>{{ k }}</th><td>{{ v.de if v.de is not none else '' }}</td><td>{{ v.para if v.para is not none else '' }}</td></tr>{% endfor %}
-    {% endif %}
-  </table>
-</div>
+  {% set det = log.filtrado if log.filtrado is defined else log.detalhes_dict %}
+  <li class="evento">
+    <div class="evento-marca"></div>
+    <div class="evento-corpo cartao">
+      <p class="evento-titulo"><b>{{ 'Cadastro criado' if log.acao == 'criar' else 'Dados alterados' }}</b>
+        <span class="sutil">{{ log.criado_em|datahora }} · {{ log.usuario.nome if log.usuario else 'sistema' }}</span></p>
+      {% if det %}
+      <table class="tabela compacta">
+        {% if log.acao == 'criar' %}
+          {% for k, x in det.items() %}<tr><th>{{ rotulos.get(k, k) }}</th><td>{{ v(x) }}</td></tr>{% endfor %}
+        {% else %}
+          <thead><tr><th>Campo</th><th>Antes</th><th>Depois</th></tr></thead>
+          {% for k, x in det.items() %}<tr><th>{{ rotulos.get(k, k) }}</th><td>{{ v(x.de) }}</td><td>{{ v(x.para) }}</td></tr>{% endfor %}
+        {% endif %}
+      </table>
+      {% else %}<p class="sutil pequeno">Alteração em campos clínicos (visível apenas para a veterinária).</p>{% endif %}
+    </div>
+  </li>
 {% else %}
-<p class="sutil">Sem registros.</p>
+  <p class="sutil">Sem registros.</p>
 {% endfor %}
+</ol>
 {% endblock %}

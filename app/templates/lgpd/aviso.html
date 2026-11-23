@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+{% block titulo %}Aviso de privacidade{% endblock %}
+{% macro corpo() %}
+<article class="documento">
+  <p class="sobretitulo">Versão {{ config.AVISO_PRIVACIDADE_VERSAO }}</p>
+  <h1>Aviso de privacidade</h1>
+  <p>Este aviso explica como <b>{{ config.CONTROLADOR_NOME or config.CLINICA_NOME }}</b>{% if config.CONTROLADOR_CNPJ %} (CNPJ {{ config.CONTROLADOR_CNPJ }}){% endif %} trata os dados pessoais dos tutores atendidos, conforme a Lei nº 13.709/2018 (LGPD).</p>
+
+  <h2>Quais dados coletamos</h2>
+  <ul>
+    <li>Do tutor: nome, CPF, telefone, endereço e ano de referência do Cadastro Único (CadÚnico).</li>
+    <li>Do animal: identificação, histórico clínico, atendimentos, receitas e agendamentos.</li>
+  </ul>
+
+  <h2>Para que usamos</h2>
+  <ul>
+    <li>Identificar o tutor e o animal, agendar e realizar atendimentos e emitir receitas.</li>
+    <li>Entrar em contato sobre consultas, retornos e resultados.</li>
+    <li>Verificar a elegibilidade a programas de atendimento (CadÚnico), quando aplicável.</li>
+    <li>Cumprir obrigações legais e regulatórias da medicina veterinária, como a guarda do prontuário.</li>
+  </ul>
+  <p>Bases legais: execução de contrato e procedimentos preliminares (art. 7º, V), cumprimento de obrigação legal ou regulatória (art. 7º, II) e, quando se tratar de órgão público ou programa social, execução de políticas públicas (art. 7º, III).</p>
+
+  <h2>Com quem compartilhamos</h2>
+  <p>Os dados não são vendidos nem usados para publicidade. São armazenados em provedor de banco de dados em nuvem contratado como operador, com criptografia. Podem ser compartilhados com autoridades quando houver obrigação legal.</p>
+
+  <h2>Como protegemos</h2>
+  <ul>
+    <li>Dados pessoais e clínicos são criptografados (AES-256) antes de serem gravados no banco.</li>
+    <li>Acesso restrito à equipe, com login individual, verificação em duas etapas e permissões por função.</li>
+    <li>Todo acesso e alteração fica registrado em trilha de auditoria.</li>
+  </ul>
+
+  <h2>Por quanto tempo guardamos</h2>
+  <p>Os dados cadastrais são mantidos enquanto houver relação de atendimento. O prontuário clínico é guardado por no mínimo {{ config.RETENCAO_PRONTUARIO_ANOS }} anos após o último atendimento, conforme normas do Conselho Federal de Medicina Veterinária. Após esse prazo, os dados são eliminados ou anonimizados.</p>
+
+  <h2>Seus direitos</h2>
+  <p>Você pode solicitar, a qualquer momento: confirmação e acesso aos seus dados, correção, portabilidade, informações sobre compartilhamento e eliminação dos dados desnecessários — respeitada a guarda legal do prontuário.</p>
+
+  <h2>Encarregado (DPO)</h2>
+  <p>{% if config.ENCARREGADO_NOME %}{{ config.ENCARREGADO_NOME }}{% else %}Encarregado de dados da clínica{% endif %}{% if config.ENCARREGADO_EMAIL %} — <a href="mailto:{{ config.ENCARREGADO_EMAIL }}">{{ config.ENCARREGADO_EMAIL }}</a>{% endif %}. Você também pode procurar a Autoridade Nacional de Proteção de Dados (ANPD).</p>
+  <p class="nao-imprimir"><button class="btn" type="button" data-imprimir>{{ icone('impressora') }} Imprimir</button></p>
+</article>
+{% endmacro %}
+{% block conteudo %}{{ corpo() }}{% endblock %}
+{% block simples %}{{ corpo() }}{% endblock %}
