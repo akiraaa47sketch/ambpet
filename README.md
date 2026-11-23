@@ -98,12 +98,16 @@ Os fluxos seguem padrões de softwares veterinários do mercado: check-in e sala
 python3 -m venv .venv && .venv/bin/pip install -r requirements.txt
 ```
 ```bash
-python scripts/gerar_env.py --producao
+python scripts/gerar_env.py --supabase https://<ref-do-projeto>.supabase.co
 ```
-O segundo comando gera `SECRET_KEY`, `ENCRYPTION_KEYS` e `BLIND_INDEX_KEY`. Cadastre esses valores como variáveis de ambiente na hospedagem, usando `.env.example` como referência. A `DATABASE_URL` usa o **usuário `ambpet_app`** pelo pooler em modo sessão:
-```
-postgresql://ambpet_app.<ref-do-projeto>:<senha>@aws-0-sa-east-1.pooler.supabase.com:5432/postgres
-```
+O script pergunta o host do *Session pooler* (painel do Supabase → **Connect**) e gera o `.env` com:
+- todos os segredos aleatórios;
+- a `DATABASE_URL` com o usuário `ambpet_app`;
+- a senha do banco. Se você apertar Enter, ele gera uma forte e mostra o `alter role` para rodar no SQL Editor.
+
+A aplicação conecta direto no PostgreSQL. As chaves *publishable*/*anon* e *service_role* do Supabase **não são usadas** e não devem ir para o `.env`.
+
+Em hospedagem (Render, Fly, VPS etc.), cadastre os mesmos valores como variáveis de ambiente em vez de enviar o arquivo.
 
 > **Guarde `ENCRYPTION_KEYS` e `BLIND_INDEX_KEY` em um cofre de senhas.** Sem elas, os dados não podem ser recuperados. Elas não devem ficar no mesmo lugar que o backup do banco.
 

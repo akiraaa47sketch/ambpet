@@ -72,6 +72,8 @@ def carregar(overrides=None):
         erros.append("SECRET_KEY ausente ou curta (mín. 32 caracteres).")
     if not cfg["SQLALCHEMY_DATABASE_URI"]:
         erros.append("DATABASE_URL não configurada.")
+    elif "COLOQUE_" in cfg["SQLALCHEMY_DATABASE_URI"] or "<" in cfg["SQLALCHEMY_DATABASE_URI"]:
+        erros.append("DATABASE_URL ainda tem um campo a preencher (host do pooler ou senha).")
     if not cfg["ENCRYPTION_KEYS"] or not cfg["BLIND_INDEX_KEY"]:
         erros.append("ENCRYPTION_KEYS e BLIND_INDEX_KEY são obrigatórias.")
     if erros:
