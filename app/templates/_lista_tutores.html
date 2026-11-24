@@ -1,0 +1,29 @@
+{# itens: lista de Responsavel; modo: 'abrir' | 'agendar' #}
+{% if itens %}
+<ul class="lista-tutores">
+  {% for r in itens %}
+  <li class="item-tutor">
+    <div class="item-tutor-info">
+      <a class="item-tutor-nome" href="{{ url_for('responsaveis.ver', rid=r.id) }}">{{ r.nome }}</a>
+      <span class="meta">{{ icone('telefone') }} {{ r.telefone|telefone }} <span class="sep"></span> CPF {{ r.cpf_mascarado }}</span>
+    </div>
+    <div class="item-tutor-pets">
+      {% for a in r.animais %}
+        {% if modo == 'agendar' %}
+          {% if not a.obito %}<a class="pet-chip" href="{{ url_for('agenda.novo', responsavel_id=r.id, animal_id=a.id, data=pre.data, hora=pre.hora) }}">{{ a.nome }} <small>{{ a.especie }}</small></a>{% endif %}
+        {% else %}
+          <a class="pet-chip {{ 'pet-obito' if a.obito }}" href="{{ url_for('animais.ver', aid=a.id) }}">{{ a.nome }} <small>{{ a.especie }}</small></a>
+        {% endif %}
+      {% else %}<span class="sutil pequeno">Sem pacientes</span>{% endfor %}
+    </div>
+    <div class="item-tutor-acoes">
+      {% if modo == 'agendar' %}
+        <a class="btn btn-primario btn-peq" href="{{ url_for('agenda.novo', responsavel_id=r.id, data=pre.data, hora=pre.hora) }}">Selecionar</a>
+      {% else %}
+        <a class="btn btn-peq" href="{{ url_for('responsaveis.ver', rid=r.id) }}">Abrir ficha</a>
+      {% endif %}
+    </div>
+  </li>
+  {% endfor %}
+</ul>
+{% endif %}

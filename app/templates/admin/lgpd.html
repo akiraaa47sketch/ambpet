@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+{% from "_macros.html" import csrf, vazio with context %}
+{% block titulo %}LGPD — Titulares{% endblock %}
+{% block conteudo %}
+<div class="cabecalho"><div><h1>Direitos dos titulares</h1>
+  <p class="sutil">Atendimento às solicitações de tutores (LGPD, art. 18). Cada ação fica registrada na auditoria.</p></div></div>
+
+<div class="duas-colunas">
+  <div class="cartao cartao-info">
+    <h3>{{ icone('download') }} Acesso e portabilidade</h3>
+    <p class="pequeno">Gera um arquivo com todos os dados do tutor, seus pacientes, atendimentos, receitas e agendamentos. Entregue somente ao próprio titular, após conferir a identidade.</p>
+  </div>
+  <div class="cartao cartao-info">
+    <h3>{{ icone('anonimo') }} Eliminação</h3>
+    <p class="pequeno">Apaga de forma irreversível os dados pessoais do tutor. O prontuário dos animais é mantido sem identificação pelo prazo de guarda legal ({{ config.RETENCAO_PRONTUARIO_ANOS }} anos).</p>
+  </div>
+</div>
+
+<form class="busca-pagina" method="post">
+  {{ csrf() }}
+  <input type="search" name="q" value="{{ q }}" placeholder="Localize o titular por nome, CPF ou telefone">
+  <button class="btn">{{ icone('busca') }} Buscar</button>
+</form>
+{% if q and not resultados %}{{ vazio('Nenhum titular encontrado', '', 'busca') }}{% endif %}
+{% for r in resultados %}
+<div class="cartao titular">
+  <div class="titular-info">
+    <b>{{ r.nome }}</b>
+    <span class="sutil pequeno">CPF {{ r.cpf_mascarado }} · {{ r.animais|length }} paciente(s) · desde {{ r.criado_em|data }}</span>
+  </div>
+  <div class="botoes">
+    <a class="btn btn-peq" href="{{ url_for('lgpd.exportar', rid=r.id) }}">{{ icone('download') }} Exportar dados</a>
+    <details class="menu-acoes">
+      <summary class="btn btn-peq btn-perigo-contorno">Eliminar dados</summary>
+      <form method="post" action="{{ url_for('lgpd.anonimizar', rid=r.id) }}" class="menu-acoes-lista form-anonimizar">
+        {{ csrf() }}
+        <p class="pequeno">Esta ação é <b>irreversível</b>.</p>
+        <div class="campo"><label>Motivo / protocolo</label><input name="motivo" maxlength="300" placeholder="Solicitação do titular em dd/mm/aaaa"></div>
+        <div class="campo"><label>Digite ANONIMIZAR</label><input name="confirmacao" required autocomplete="off"></div>
+        <div class="campo"><label>Sua senha</label><input name="senha" type="password" required autocomplete="current-password"></div>
+        <button class="btn btn-perigo btn-bloco">Eliminar dados pessoais</button>
+      </form>
+    </details>
+  </div>
+</div>
+{% endfor %}
+{% endblock %}

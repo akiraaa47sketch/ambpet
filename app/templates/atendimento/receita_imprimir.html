@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+{% block titulo %}Receita {{ rec.id }}{% endblock %}
+{% block conteudo %}
+<div class="barra-botoes nao-imprimir">
+  <a class="btn btn-fantasma" href="{{ url_for('animais.ver', aid=a.id) }}">{{ icone('esquerda') }} Voltar ao prontuário</a>
+  <button class="btn btn-primario" type="button" data-imprimir>{{ icone('impressora') }} Imprimir</button>
+  <a class="btn" href="{{ url_for('atendimento.nova_receita', aid=a.id, repetir=rec.id) }}">{{ icone('repetir') }} Repetir receita</a>
+</div>
+{% for via in vias %}
+<article class="receita {{ 'controle' if rec.tipo == 'controle_especial' }}">
+  <header class="rc-cab">
+    <div>
+      <p class="rc-clinica">{{ config.CLINICA_NOME }}</p>
+      {% if config.CLINICA_ENDERECO %}<p>{{ config.CLINICA_ENDERECO }}</p>{% endif %}
+      {% if config.CLINICA_TELEFONE %}<p>{{ config.CLINICA_TELEFONE }}</p>{% endif %}
+    </div>
+    <div class="rc-tipo">
+      <p>{{ 'Receituário de controle especial' if rec.tipo == 'controle_especial' else 'Receituário' }}</p>
+      {% if via %}<p class="rc-via">{{ via }}</p>{% endif %}
+      <p class="pequeno">Nº {{ '%06d'|format(rec.id) }}</p>
+    </div>
+  </header>
+  <section class="rc-ident">
+    <div><span>Paciente</span><b>{{ a.nome }}</b> — {{ a.especie }}, {{ a.raca }}, {{ a.sexo_nome|lower }}, {{ a|idade }}{% if a.peso_kg is not none %}, {{ a.peso_kg|num(2) }} kg{% endif %}</div>
+    <div><span>Tutor</span><b>{{ a.responsavel.nome }}</b> — CPF {{ a.responsavel.cpf|cpf }}</div>
+    <div><span>Endereço</span>{{ a.responsavel.endereco_completo }}</div>
+  </section>
+  {% set grupos = {} %}
+  {% for it in rec.itens %}{% set _ = grupos.setdefault(it.via or '', []).append(it) %}{% endfor %}
+  <section class="rc-itens">
+    {% set n = namespace(i=0) %}
+    {% for via_item, itens in grupos.items() %}
+      <p class="rc-uso">{{ ('Uso ' ~ via_item|lower) if via_item else 'Uso' }}</p>
+      <ol>
+      {% for it in itens %}{% set n.i = n.i + 1 %}
+        <li value="{{ n.i }}">
+          <p class="rc-med"><b>{{ it.medicamento }}</b>{% if it.concentracao %} {{ it.concentracao }}{% endif %}<span class="rc-pontos"></span>{{ it.quantidade or '' }}</p>
+          <p>{{ it.posologia }}{% if it.duracao %} — {{ it.duracao }}{% endif %}</p>
+        </li>
+      {% endfor %}
+      </ol>
+    {% endfor %}
+  </section>
+  {% if rec.orientacoes %}<section class="rc-orient"><p class="rc-uso">Orientações</p><p class="texto">{{ rec.orientacoes }}</p></section>{% endif %}
+  <footer class="rc-rodape">
+    <p>Emitida em {{ rec.emitida_em|data_extenso }}</p>
+    <div class="rc-assinatura"><span></span><b>{{ rec.veterinario.nome }}</b><small>Médica(o) veterinária(o){% if rec.veterinario.crmv %} · CRMV {{ rec.veterinario.crmv }}{% endif %}</small></div>
+  </footer>
+  {% if rec.tipo == 'controle_especial' %}
+  <section class="rc-comprador">
+    <div><p class="rc-uso">Identificação do comprador</p>
+      <p>Nome: ____________________________________</p><p>RG: ________________ Órgão emissor: ______</p>
+      <p>Endereço: _________________________________</p><p>Telefone: ______________________________</p></div>
+    <div><p class="rc-uso">Identificação do fornecedor</p>
+      <p>&nbsp;</p><p>_______________________________________</p><p>Assinatura do farmacêutico</p><p>Data: ____/____/______</p></div>
+  </section>
+  {% endif %}
+</article>
+{% endfor %}
+{% endblock %}

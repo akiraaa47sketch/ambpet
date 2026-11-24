@@ -5,3 +5,8 @@ instance/
 backups/
 .env
 .pytest_cache/
+.env.*
+!.env.example
+*.pem
+*.crt
+*.key

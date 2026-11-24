@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% from "_macros.html" import csrf, vazio with context %}
+{% block titulo %}Novo agendamento{% endblock %}
+{% block conteudo %}
+<nav class="migalhas"><a href="{{ url_for('agenda.dia') }}">Agenda</a> <span>/</span> Novo agendamento</nav>
+<div class="cabecalho"><div>
+  <h1>Novo agendamento</h1>
+  <p class="sutil">Para quem é o horário{% if pre.data %} de {{ pre.data[8:10] }}/{{ pre.data[5:7] }}{% if pre.hora %} às {{ pre.hora }}{% endif %}{% endif %}? Só é possível agendar para tutores e pacientes já cadastrados.</p>
+</div></div>
+<ol class="etapas"><li class="atual">Tutor e paciente</li><li>Data e horário</li></ol>
+<form class="busca-pagina" method="post">
+  {{ csrf() }}
+  <input type="hidden" name="data" value="{{ pre.data }}"><input type="hidden" name="hora" value="{{ pre.hora }}">
+  <input type="search" name="q" value="{{ q }}" placeholder="Nome do tutor, CPF, telefone ou nome do paciente" autofocus>
+  <button class="btn">{{ icone('busca') }} Buscar</button>
+</form>
+{% if q and not resultados %}
+  {% call vazio('Nenhum cadastro encontrado', 'Cadastre o tutor e o paciente antes de agendar.', 'busca') %}
+    <a class="btn btn-primario" href="{{ url_for('responsaveis.novo') }}">{{ icone('mais') }} Cadastrar tutor</a>
+  {% endcall %}
+{% elif not q %}
+  <p class="sutil pequeno">Dica: clique direto no nome do paciente para ir à escolha do horário.</p>
+{% endif %}
+{% with itens = resultados, modo = 'agendar' %}{% include "_lista_tutores.html" %}{% endwith %}
+{% endblock %}

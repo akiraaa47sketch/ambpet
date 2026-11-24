@@ -1,12 +1,25 @@
-{% macro campo(nome, rotulo, dados, erros, tipo='text', obrigatorio=true, extra='', ajuda='') %}
-<label class="campo {{ 'com-erro' if erros.get(nome) }}">
-  <span>{{ rotulo }}{% if obrigatorio %} <b class="obr">*</b>{% endif %}</span>
-  <input type="{{ tipo }}" name="{{ nome }}" value="{{ dados.get(nome) if dados.get(nome) is not none else '' }}" {{ 'required' if obrigatorio }} {{ extra|safe }}>
-  {% if ajuda %}<small class="ajuda">{{ ajuda }}</small>{% endif %}
-  {% if erros.get(nome) %}<small class="erro">{{ erros[nome] }}</small>{% endif %}
-</label>
-{% endmacro %}
-
 {% macro csrf() %}<input type="hidden" name="_csrf" value="{{ csrf_token() }}">{% endmacro %}
 
-{% macro status_badge(ag) %}<span class="badge st-{{ ag.status }}">{{ ag.status_nome }}</span>{% endmacro %}
+{% macro campo(nome, rotulo, dados, erros, tipo='text', obrigatorio=true, extra='', ajuda='', classe='') %}
+<div class="campo {{ classe }} {{ 'com-erro' if erros.get(nome) }}">
+  <label for="f-{{ nome }}">{{ rotulo }}{% if not obrigatorio %} <span class="opcional">opcional</span>{% endif %}</label>
+  <input id="f-{{ nome }}" type="{{ tipo }}" name="{{ nome }}" value="{{ dados.get(nome) if dados.get(nome) is not none else '' }}" {{ 'required' if obrigatorio }} {{ extra|safe }}{% if erros.get(nome) %} aria-invalid="true" aria-describedby="e-{{ nome }}"{% endif %}>
+  {% if erros.get(nome) %}<p class="msg-erro" id="e-{{ nome }}">{{ erros[nome] }}</p>{% elif ajuda %}<p class="ajuda">{{ ajuda }}</p>{% endif %}
+</div>
+{% endmacro %}
+
+{% macro texto(nome, rotulo, dados, erros, linhas=3, obrigatorio=false, ajuda='', placeholder='') %}
+<div class="campo {{ 'com-erro' if erros.get(nome) }}">
+  <label for="f-{{ nome }}">{{ rotulo }}{% if not obrigatorio %} <span class="opcional">opcional</span>{% endif %}</label>
+  <textarea id="f-{{ nome }}" name="{{ nome }}" rows="{{ linhas }}" placeholder="{{ placeholder }}" {{ 'required' if obrigatorio }}>{{ dados.get(nome) or '' }}</textarea>
+  {% if erros.get(nome) %}<p class="msg-erro">{{ erros[nome] }}</p>{% elif ajuda %}<p class="ajuda">{{ ajuda }}</p>{% endif %}
+</div>
+{% endmacro %}
+
+{% macro status(ag) %}<span class="status st-{{ ag.status }}">{{ ag.status_nome }}</span>{% endmacro %}
+
+{% macro avatar_paciente(a, tamanho='') %}<span class="avatar-pac {{ tamanho }} esp-{{ 'felina' if a.especie == 'Felina' else ('canina' if a.especie == 'Canina' else 'outra') }}" aria-hidden="true">{{ a.nome[:1]|upper }}</span>{% endmacro %}
+
+{% macro vazio(titulo, texto='', icone_nome='lista') %}
+<div class="vazio">{{ icone(icone_nome) }}<p><b>{{ titulo }}</b></p>{% if texto %}<p>{{ texto }}</p>{% endif %}{{ caller() if caller }}</div>
+{% endmacro %}

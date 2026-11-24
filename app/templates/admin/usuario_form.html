@@ -1,32 +1,56 @@
 {% extends "base.html" %}
 {% from "_macros.html" import csrf with context %}
-{% block titulo %}{{ 'Editar' if u else 'Novo' }} usuário{% endblock %}
+{% block titulo %}{{ u.nome if u else 'Novo usuário' }}{% endblock %}
 {% block conteudo %}
 {% set v = form if form else {} %}
-<p><a href="{{ url_for('admin.usuarios') }}">← Usuários</a></p>
-<h1>{{ 'Editar usuário' if u else 'Novo usuário' }}</h1>
-<form method="post" class="cartao estreito" novalidate>
+<nav class="migalhas"><a href="{{ url_for('admin.usuarios') }}">Usuários</a> <span>/</span> {{ u.nome if u else 'Novo' }}</nav>
+<div class="cabecalho"><div><h1>{{ 'Gerenciar usuário' if u else 'Novo usuário' }}</h1>
+  {% if not u %}<p class="sutil">Uma senha temporária será gerada. No primeiro acesso a pessoa define a própria senha e configura a verificação em duas etapas.</p>{% endif %}</div></div>
+<div class="duas-colunas">
+<form method="post" class="cartao" novalidate>
   {{ csrf() }}
-  <label class="campo {{ 'com-erro' if erros.nome }}"><span>Nome <b class="obr">*</b></span>
-    <input name="nome" value="{{ v.get('nome', u.nome if u else '') }}" required>
-    {% if erros.nome %}<small class="erro">{{ erros.nome }}</small>{% endif %}</label>
-  <label class="campo {{ 'com-erro' if erros.login }}"><span>Login <b class="obr">*</b></span>
-    <input name="login" value="{{ v.get('login', u.login if u else '') }}" required autocomplete="off">
-    {% if erros.login %}<small class="erro">{{ erros.login }}</small>{% endif %}</label>
+  <div class="campo {{ 'com-erro' if erros.nome }}"><label for="nome">Nome completo</label>
+    <input id="nome" name="nome" value="{{ v.get('nome', u.nome if u else '') }}" required>
+    {% if erros.nome %}<p class="msg-erro">{{ erros.nome }}</p>{% endif %}</div>
+  <div class="campo {{ 'com-erro' if erros.login }}"><label for="login">Login</label>
+    <input id="login" name="login" value="{{ v.get('login', u.login if u else '') }}" required autocomplete="off" autocapitalize="none" spellcheck="false">
+    {% if erros.login %}<p class="msg-erro">{{ erros.login }}</p>{% endif %}</div>
   {% set perfil_atual = v.get('perfil', u.perfil if u else '') %}
-  <label class="campo {{ 'com-erro' if erros.perfil }}"><span>Perfil <b class="obr">*</b></span>
-    <select name="perfil" required>
-      <option value="">—</option>
+  <div class="campo {{ 'com-erro' if erros.perfil }}"><label for="perfil">Perfil</label>
+    <select id="perfil" name="perfil" required>
+      <option value="">Selecione</option>
       {% for k, nome in PERFIS.items() %}<option value="{{ k }}" {{ 'selected' if perfil_atual == k }}>{{ nome }}</option>{% endfor %}
     </select>
-    {% if erros.perfil %}<small class="erro">{{ erros.perfil }}</small>{% endif %}</label>
-  <label class="campo"><span>CRMV (veterinária — sai na receita)</span>
-    <input name="crmv" value="{{ v.get('crmv', (u.crmv or '') if u else '') }}" placeholder="ex.: SP-12345"></label>
-  <label class="campo {{ 'com-erro' if erros.senha }}"><span>{{ 'Nova senha (deixe em branco para manter)' if u else 'Senha' }}{% if not u %} <b class="obr">*</b>{% endif %}</span>
-    <input type="password" name="senha" minlength="8" autocomplete="new-password">
-    {% if erros.senha %}<small class="erro">{{ erros.senha }}</small>{% endif %}</label>
-  {% set ativo = (v.get('ativo') == 'on') if v else (u.ativo if u else true) %}
-  <label class="check"><input type="checkbox" name="ativo" {{ 'checked' if ativo }}> Usuário ativo</label>
-  <div class="botoes"><button class="btn btn-primario">Salvar</button></div>
+    {% if erros.perfil %}<p class="msg-erro">{{ erros.perfil }}</p>{% endif %}</div>
+  <div class="campo {{ 'com-erro' if erros.crmv }}"><label for="crmv">CRMV <span class="opcional">veterinária</span></label>
+    <input id="crmv" name="crmv" value="{{ v.get('crmv', (u.crmv or '') if u else '') }}" placeholder="SP-12345">
+    {% if erros.crmv %}<p class="msg-erro">{{ erros.crmv }}</p>{% else %}<p class="ajuda">Impresso na receita.</p>{% endif %}</div>
+  {% if u %}
+  {% set ativo = (v.get('ativo') == 'on') if v else u.ativo %}
+  <label class="check"><input type="checkbox" name="ativo" {{ 'checked' if ativo }}><span>Acesso ativo</span></label>
+  {% endif %}
+  <div class="acoes-form"><button class="btn btn-primario">{{ 'Salvar' if u else 'Criar usuário' }}</button></div>
 </form>
+{% if u %}
+<div class="cartao">
+  <h3>Segurança da conta</h3>
+  <dl class="dl">
+    <dt>Último acesso</dt><dd>{{ u.ultimo_login_em|datahora if u.ultimo_login_em else 'nunca' }}</dd>
+    <dt>Senha alterada em</dt><dd>{{ u.senha_alterada_em|datahora }}</dd>
+    <dt>2 etapas</dt><dd>{{ 'Ativa' if u.totp_ativo else 'Não configurada' }}</dd>
+    {% if u.bloqueado_ate %}<dt>Bloqueado até</dt><dd>{{ u.bloqueado_ate|datahora }}</dd>{% endif %}
+  </dl>
+  <div class="pilha-botoes">
+    <form method="post" action="{{ url_for('admin.redefinir', uid=u.id) }}" data-confirmar="Gerar nova senha temporária para {{ u.nome }}? As sessões abertas serão encerradas.">{{ csrf() }}
+      <input type="hidden" name="o_que" value="senha"><button class="btn btn-bloco">{{ icone('chave') }} Redefinir senha</button></form>
+    <form method="post" action="{{ url_for('admin.redefinir', uid=u.id) }}" data-confirmar="Redefinir a verificação em duas etapas? Use quando a pessoa trocar ou perder o celular.">{{ csrf() }}
+      <input type="hidden" name="o_que" value="2fa"><button class="btn btn-bloco">{{ icone('cadeado') }} Redefinir 2 etapas</button></form>
+    {% if u.bloqueado_ate %}
+    <form method="post" action="{{ url_for('admin.redefinir', uid=u.id) }}">{{ csrf() }}
+      <input type="hidden" name="o_que" value="desbloquear"><button class="btn btn-bloco">Desbloquear</button></form>
+    {% endif %}
+  </div>
+</div>
+{% endif %}
+</div>
 {% endblock %}

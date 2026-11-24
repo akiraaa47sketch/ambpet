@@ -1,0 +1,11 @@
+{% extends "base.html" %}
+{% block titulo %}Senha temporária{% endblock %}
+{% block conteudo %}
+<div class="cartao estreito">
+  <h1>Senha temporária gerada</h1>
+  <p>Entregue pessoalmente a <b>{{ u.nome }}</b> (login <code>{{ u.login }}</code>). Ela não será exibida novamente.</p>
+  <p class="senha-temp"><code>{{ senha }}</code></p>
+  <p class="ajuda">No primeiro acesso será pedida uma nova senha e a configuração da verificação em duas etapas. Não envie esta senha por e-mail ou mensagem.</p>
+  <a class="btn btn-primario" href="{{ url_for('admin.usuarios') }}">Concluir</a>
+</div>
+{% endblock %}

@@ -1,41 +1,63 @@
 {% extends "base.html" %}
 {% from "_macros.html" import campo, csrf with context %}
-{% block titulo %}{{ 'Editar' if r else 'Novo' }} responsável{% endblock %}
+{% block titulo %}{{ 'Editar tutor' if r else 'Novo tutor' }}{% endblock %}
 {% block conteudo %}
-<p><a href="{{ url_for('responsaveis.ver', rid=r.id) if r else url_for('responsaveis.lista') }}">← Voltar</a></p>
-<h1>{{ 'Editar responsável' if r else 'Cadastro de responsável' }}</h1>
-<form method="post" class="cartao" novalidate>
+<nav class="migalhas">
+  <a href="{{ url_for('responsaveis.lista') }}">Tutores</a>{% if r %} <span>/</span> <a href="{{ url_for('responsaveis.ver', rid=r.id) }}">{{ r.nome }}</a>{% endif %}
+</nav>
+<div class="cabecalho"><div>
+  <h1>{{ 'Editar dados do tutor' if r else 'Novo tutor' }}</h1>
+  {% if not r %}<p class="sutil">Etapa 1 de 2 — depois você cadastra o paciente.</p>{% endif %}
+</div></div>
+
+{% if erros.get('_existente') %}
+<div class="alerta alerta-aviso">Já existe um tutor com este CPF. <a href="{{ url_for('responsaveis.ver', rid=erros['_existente']) }}">Abrir cadastro existente</a></div>
+{% endif %}
+
+<form method="post" class="form-secoes" novalidate>
   {{ csrf() }}
-  <fieldset>
-    <legend>Dados pessoais</legend>
-    <div class="grade">
-      <div class="col-2">{{ campo('nome', 'Nome completo', dados, erros, extra='maxlength="150" autocomplete="off"') }}</div>
-      {{ campo('cpf', 'CPF', dados, erros, extra='data-mascara="cpf" inputmode="numeric" placeholder="000.000.000-00"') }}
-      {{ campo('telefone', 'Telefone', dados, erros, tipo='tel', extra='data-mascara="telefone" inputmode="numeric" placeholder="(00) 00000-0000"') }}
-      {{ campo('ano_cadunico', 'Ano do Cadastro Único', dados, erros, tipo='number', extra='min="2000" max="2100" placeholder="ex.: 2025"', ajuda='Ano de referência do CadÚnico') }}
+  <section class="cartao secao-form">
+    <header><h2>Identificação</h2><p class="sutil">Dados usados para contato e identificação.</p></header>
+    <div class="grade g-4">
+      {{ campo('nome', 'Nome completo', dados, erros, extra='maxlength="150" autocomplete="off"', classe='s-2') }}
+      {{ campo('cpf', 'CPF', dados, erros, extra='data-mascara="cpf" inputmode="numeric" autocomplete="off" placeholder="000.000.000-00"') }}
+      {{ campo('telefone', 'Telefone / WhatsApp', dados, erros, tipo='tel', extra='data-mascara="telefone" inputmode="numeric" autocomplete="off" placeholder="(00) 00000-0000"') }}
+      {{ campo('ano_cadunico', 'Ano do CadÚnico', dados, erros, tipo='number', extra='min="2000" max="2100" placeholder="2025"', ajuda='Ano de referência do Cadastro Único') }}
     </div>
-  </fieldset>
-  <fieldset>
-    <legend>Endereço</legend>
-    <div class="grade">
-      {{ campo('cep', 'CEP', dados, erros, extra='data-mascara="cep" data-viacep inputmode="numeric" placeholder="00000-000"', ajuda='Preenche o endereço automaticamente') }}
-      <div class="col-2">{{ campo('logradouro', 'Logradouro', dados, erros, extra='maxlength="150"') }}</div>
-      {{ campo('numero', 'Número', dados, erros, extra='maxlength="20"') }}
-      {{ campo('complemento', 'Complemento', dados, erros, obrigatorio=false, extra='maxlength="80"') }}
-      {{ campo('bairro', 'Bairro', dados, erros, extra='maxlength="80"') }}
-      {{ campo('cidade', 'Cidade', dados, erros, extra='maxlength="80"') }}
-      <label class="campo {{ 'com-erro' if erros.get('uf') }}">
-        <span>UF <b class="obr">*</b></span>
-        <select name="uf" required>
-          <option value="">—</option>
+  </section>
+  <section class="cartao secao-form">
+    <header><h2>Endereço</h2>{% if config.USAR_VIACEP %}<p class="sutil">Digite o CEP para preencher automaticamente.</p>{% endif %}</header>
+    <div class="grade g-4">
+      {{ campo('cep', 'CEP', dados, erros, extra='data-mascara="cep" data-cep inputmode="numeric" autocomplete="off" placeholder="00000-000"') }}
+      {{ campo('logradouro', 'Logradouro', dados, erros, extra='maxlength="150" autocomplete="off"', classe='s-2') }}
+      {{ campo('numero', 'Número', dados, erros, extra='maxlength="20" autocomplete="off"') }}
+      {{ campo('complemento', 'Complemento', dados, erros, obrigatorio=false, extra='maxlength="80" autocomplete="off"') }}
+      {{ campo('bairro', 'Bairro', dados, erros, extra='maxlength="80" autocomplete="off"') }}
+      {{ campo('cidade', 'Cidade', dados, erros, extra='maxlength="80" autocomplete="off"') }}
+      <div class="campo {{ 'com-erro' if erros.get('uf') }}">
+        <label for="f-uf">UF</label>
+        <select id="f-uf" name="uf" required>
+          <option value="">Selecione</option>
           {% for uf in ufs %}<option {{ 'selected' if dados.get('uf') == uf }}>{{ uf }}</option>{% endfor %}
         </select>
-        {% if erros.get('uf') %}<small class="erro">{{ erros.uf }}</small>{% endif %}
-      </label>
+        {% if erros.get('uf') %}<p class="msg-erro">{{ erros.uf }}</p>{% endif %}
+      </div>
     </div>
-  </fieldset>
-  <div class="botoes">
-    <button class="btn btn-primario">{{ 'Salvar alterações' if r else 'Cadastrar e adicionar animal' }}</button>
+  </section>
+  {% if not r %}
+  <section class="cartao secao-form">
+    <header><h2>Privacidade</h2></header>
+    <label class="check {{ 'com-erro' if erros.get('aviso_privacidade') }}">
+      <input type="checkbox" name="aviso_privacidade" {{ 'checked' if request.form.get('aviso_privacidade') }}>
+      <span>O tutor foi informado sobre o tratamento dos seus dados pessoais conforme o
+        <a href="{{ url_for('lgpd.aviso') }}" target="_blank" rel="noopener">aviso de privacidade</a> (versão {{ config.AVISO_PRIVACIDADE_VERSAO }}).</span>
+    </label>
+    {% if erros.get('aviso_privacidade') %}<p class="msg-erro">{{ erros.aviso_privacidade }}</p>{% endif %}
+  </section>
+  {% endif %}
+  <div class="barra-acoes">
+    <a class="btn btn-fantasma" href="{{ url_for('responsaveis.ver', rid=r.id) if r else url_for('responsaveis.lista') }}">Cancelar</a>
+    <button class="btn btn-primario">{{ 'Salvar alterações' if r else 'Continuar para o paciente' }}</button>
   </div>
 </form>
 {% endblock %}

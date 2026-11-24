@@ -1,0 +1,133 @@
+{% extends "base.html" %}
+{% from "_macros.html" import status, avatar_paciente, csrf with context %}
+{% block titulo %}Agenda {{ data|data }}{% endblock %}
+
+{% macro cartao_ag(ag) %}
+<article class="ag st-borda-{{ ag.status }}">
+  <div class="ag-hora">{{ ag.data_hora|hora }}</div>
+  <div class="ag-corpo">
+    <p class="ag-titulo">
+      <a href="{{ url_for('animais.ver', aid=ag.animal.id) }}"><b>{{ ag.animal.nome }}</b></a>
+      <span class="sutil">{{ ag.animal.especie }} · {{ ag.animal.raca }}</span>
+      <span class="etiqueta">{{ ag.tipo }}</span>
+    </p>
+    <p class="ag-tutor">
+      <a href="{{ url_for('responsaveis.ver', rid=ag.responsavel.id) }}">{{ ag.responsavel.nome }}</a>
+      <a class="ag-tel" href="tel:+55{{ ag.responsavel.telefone }}">{{ icone('telefone') }} {{ ag.responsavel.telefone|telefone }}</a>
+    </p>
+    {% if ag.observacao %}<p class="ag-obs">{{ ag.observacao }}</p>{% endif %}
+  </div>
+  <div class="ag-lado">
+    {{ status(ag) }}
+    <div class="ag-acoes nao-imprimir">
+      {% if current_user.tem_perfil('veterinaria') and ag.status in ('agendado','confirmado','aguardando','em_atendimento') %}
+        <form method="post" action="{{ url_for('atendimento.iniciar', agid=ag.id) }}">{{ csrf() }}
+          <button class="btn btn-primario btn-peq">{{ icone('play') }} {{ 'Continuar' if ag.status == 'em_atendimento' else 'Atender' }}</button></form>
+      {% endif %}
+      {% if current_user.tem_perfil('recepcao') %}
+        {% set acoes = [] %}
+        {% if ag.status in ('agendado','confirmado') %}{% set acoes = [('chegou','Registrar chegada')] + ([('confirmar','Confirmar')] if ag.status == 'agendado' else []) + [('faltou','Não compareceu'),('cancelar','Cancelar')] %}
+        {% elif ag.status == 'aguardando' %}{% set acoes = [('desfazer_chegada','Desfazer chegada'),('cancelar','Cancelar')] %}
+        {% elif ag.status in ('faltou','cancelado') %}{% set acoes = [('reabrir','Reabrir')] %}
+        {% endif %}
+        {% if acoes %}
+        {% if acoes[0][0] == 'chegou' %}
+        <form method="post" action="{{ url_for('agenda.acao', agid=ag.id) }}">{{ csrf() }}
+          <input type="hidden" name="voltar" value="{{ request.full_path }}"><input type="hidden" name="acao" value="chegou">
+          <button class="btn btn-peq">{{ icone('porta') }} Chegou</button></form>
+        {% set acoes = acoes[1:] %}
+        {% endif %}
+        <details class="menu-acoes">
+          <summary class="btn-icone btn-peq" aria-label="Mais ações">⋯</summary>
+          <div class="menu-acoes-lista">
+            {% for chave, rotulo in acoes %}
+            <form method="post" action="{{ url_for('agenda.acao', agid=ag.id) }}" {% if chave == 'cancelar' %}data-confirmar="Cancelar o agendamento de {{ ag.animal.nome }}?"{% endif %}>{{ csrf() }}
+              <input type="hidden" name="voltar" value="{{ request.full_path }}"><input type="hidden" name="acao" value="{{ chave }}">
+              <button class="{{ 'perigo' if chave == 'cancelar' }}">{{ rotulo }}</button></form>
+            {% endfor %}
+          </div>
+        </details>
+        {% endif %}
+      {% endif %}
+    </div>
+  </div>
+</article>
+{% endmacro %}
+
+{% block conteudo %}
+<div class="cabecalho">
+  <div>
+    <p class="sobretitulo">{{ 'Hoje' if data == hoje else data|dia_semana }}</p>
+    <h1>{{ data|data_extenso }}</h1>
+  </div>
+  <div class="resumo-dia">
+    <span><b>{{ ags|rejectattr('status', 'equalto', 'cancelado')|list|length }}</b> agendados</span>
+    <span><b>{{ contagem.aguardando + contagem.em_atendimento }}</b> na clínica</span>
+    <span><b>{{ contagem.finalizado }}</b> finalizados</span>
+    <button class="btn btn-fantasma btn-peq nao-imprimir" type="button" data-imprimir>{{ icone('impressora') }} Imprimir</button>
+  </div>
+</div>
+{% with modo='dia', data_ref=data %}{% include "agenda/_cab.html" %}{% endwith %}
+
+{% if not util %}
+<div class="alerta alerta-aviso">Fim de semana — a clínica não atende aos sábados e domingos.</div>
+{% endif %}
+
+<div class="agenda-layout">
+  <section class="agenda-grade" aria-label="Horários do dia">
+    {% for hora, lista in slots.items() %}
+    {% set slot_passado = passado or (data == hoje and hora < agora.strftime('%H:%M') and (loop.last or loop.nextitem[0] <= agora.strftime('%H:%M'))) %}
+    <div class="slot {{ 'slot-ocupado' if lista }} {{ 'slot-passado' if slot_passado }} {{ 'slot-agora' if data == hoje and hora <= agora.strftime('%H:%M') and (loop.last or loop.nextitem[0] > agora.strftime('%H:%M')) }}">
+      {% set pode_agendar = util and not slot_passado and current_user.tem_perfil('recepcao') %}
+      <div class="slot-hora">{{ hora }}
+        {% if lista and pode_agendar %}<a class="slot-encaixe nao-imprimir" href="{{ url_for('agenda.novo', data=data.isoformat(), hora=hora) }}" title="Encaixar outro paciente às {{ hora }}">{{ icone('mais') }} encaixe</a>{% endif %}
+      </div>
+      <div class="slot-conteudo">
+        {% for ag in lista %}{{ cartao_ag(ag) }}{% endfor %}
+        {% if not lista and pode_agendar %}
+          <a class="slot-livre nao-imprimir" href="{{ url_for('agenda.novo', data=data.isoformat(), hora=hora) }}">{{ icone('mais') }} Agendar às {{ hora }}</a>
+        {% elif not lista %}<span class="slot-vazio"></span>{% endif %}
+      </div>
+    </div>
+    {% endfor %}
+    {% if fora %}
+    <div class="slot"><div class="slot-hora">Outros</div><div class="slot-conteudo">{% for ag in fora %}{{ cartao_ag(ag) }}{% endfor %}</div></div>
+    {% endif %}
+  </section>
+
+  <aside class="painel-espera nao-imprimir" aria-label="Sala de espera">
+    <h2>{{ icone('porta') }} Sala de espera</h2>
+    {% if data != hoje %}
+      <p class="sutil pequeno">Disponível na agenda de hoje.</p>
+    {% elif espera %}
+      <ul class="lista-espera">
+        {% for ag in espera %}
+        <li class="{{ 'em-atendimento' if ag.status == 'em_atendimento' }}">
+          <div>
+            <a href="{{ url_for('animais.ver', aid=ag.animal.id) }}"><b>{{ ag.animal.nome }}</b></a>
+            <span class="sutil pequeno">{{ ag.responsavel.nome.split()[0] }} · {{ ag.data_hora|hora }}</span>
+          </div>
+          {% if ag.status == 'em_atendimento' %}
+            <span class="status st-em_atendimento">Em atendimento</span>
+          {% else %}
+            {% set minutos = ((agora - ag.chegada_em).total_seconds() // 60)|int if ag.chegada_em else 0 %}
+            <span class="espera-tempo {{ 'espera-longa' if minutos >= 30 }}">{{ icone('relogio') }} {{ minutos }} min</span>
+          {% endif %}
+          {% if current_user.tem_perfil('veterinaria') %}
+          <form method="post" action="{{ url_for('atendimento.iniciar', agid=ag.id) }}">{{ csrf() }}
+            <button class="btn btn-primario btn-peq btn-bloco">{{ 'Continuar atendimento' if ag.status == 'em_atendimento' else 'Chamar e atender' }}</button></form>
+          {% endif %}
+        </li>
+        {% endfor %}
+      </ul>
+    {% else %}
+      <p class="sutil pequeno">Ninguém aguardando. A recepção registra a chegada pelo botão <b>Chegou</b>.</p>
+    {% endif %}
+
+    <h3>Resumo</h3>
+    <ul class="lista-resumo">
+      {% for s, n in contagem.items() if n %}<li><span class="ponto st-{{ s }}"></span> {{ {'agendado':'Agendados','confirmado':'Confirmados','aguardando':'Na sala de espera','em_atendimento':'Em atendimento','finalizado':'Finalizados','faltou':'Não compareceram','cancelado':'Cancelados'}[s] }} <b>{{ n }}</b></li>{% else %}<li class="sutil">Sem agendamentos</li>{% endfor %}
+    </ul>
+  </aside>
+</div>
+{% endblock %}

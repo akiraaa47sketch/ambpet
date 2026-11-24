@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% block titulo %}Agenda da semana{% endblock %}
+{% block conteudo %}
+<div class="cabecalho">
+  <div><p class="sobretitulo">Semana</p>
+    <h1>{{ dias[0]|data_curta }} a {{ dias[-1]|data }}</h1></div>
+</div>
+{% with modo='semana', data_ref=dias[0], anterior=anterior, proximo=proximo %}{% include "agenda/_cab.html" %}{% endwith %}
+<div class="tabela-caixa">
+<table class="semana">
+  <thead>
+    <tr><th class="col-hora"></th>
+      {% for d in dias %}
+      <th class="{{ 'hoje' if d == hoje }}"><a href="{{ url_for('agenda.dia', data=d.isoformat()) }}">
+        <span>{{ d|dia_curto }}</span> <b>{{ d.day }}</b></a>
+        <small>{{ total[d] }} agend.</small></th>
+      {% endfor %}
+    </tr>
+  </thead>
+  <tbody>
+  {% for h in horas %}
+    <tr>
+      <th class="col-hora">{{ h }}</th>
+      {% for d in dias %}
+      {% set itens = grade[(d, h)] %}
+      <td class="{{ 'hoje' if d == hoje }} {{ 'passado' if d < hoje }}">
+        {% for ag in itens %}
+          <a class="sem-ag st-borda-{{ ag.status }}" href="{{ url_for('agenda.dia', data=d.isoformat()) }}" title="{{ ag.data_hora|hora }} · {{ ag.animal.nome }} ({{ ag.responsavel.nome }}) · {{ ag.status_nome }}">
+            <span>{{ ag.data_hora|hora }}</span> {{ ag.animal.nome }}</a>
+        {% endfor %}
+        {% if not itens and d >= hoje and current_user.tem_perfil('recepcao') %}
+          <a class="sem-livre" href="{{ url_for('agenda.novo', data=d.isoformat(), hora=h) }}" aria-label="Agendar {{ d|data }} às {{ h }}"></a>
+        {% endif %}
+      </td>
+      {% endfor %}
+    </tr>
+  {% endfor %}
+  </tbody>
+</table>
+</div>
+{% endblock %}

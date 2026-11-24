@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+{% block titulo %}Meus acessos{% endblock %}
+{% set nomes = {'login':'Entrada no sistema','logout':'Saída','login_falhou':'Tentativa com senha errada','login_bloqueado':'Tentativa com conta bloqueada','2fa_falhou':'Código de verificação inválido','alterar_senha':'Senha alterada','2fa_ativado':'Verificação em 2 etapas ativada'} %}
+{% block conteudo %}
+<div class="cabecalho"><div><h1>Meus acessos</h1>
+  <p class="sutil">Se reconhecer alguma atividade estranha, troque sua senha e avise o administrador.</p></div></div>
+<div class="tabela-caixa estreito">
+<table class="tabela">
+  <thead><tr><th>Data e hora</th><th>Evento</th></tr></thead>
+  {% for l in logs %}
+  <tr class="{{ 'linha-alerta' if 'falhou' in l.acao or 'bloqueado' in l.acao }}"><td class="nowrap">{{ l.criado_em|datahora }}</td><td>{{ nomes.get(l.acao, l.acao) }}</td></tr>
+  {% endfor %}
+</table>
+</div>
+{% endblock %}

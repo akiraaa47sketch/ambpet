@@ -1,126 +1,172 @@
 {% extends "base.html" %}
-{% from "_macros.html" import status_badge, csrf with context %}
+{% from "_macros.html" import status, avatar_paciente, csrf, vazio with context %}
 {% block titulo %}{{ a.nome }}{% endblock %}
+{% macro vital(rotulo, valor, unidade='') %}{% if valor is not none and valor != '' %}<span class="vital"><small>{{ rotulo }}</small> {{ valor }}{{ unidade }}</span>{% endif %}{% endmacro %}
 {% block conteudo %}
-<p><a href="{{ url_for('responsaveis.ver', rid=a.responsavel.id) }}">← {{ a.responsavel.nome }}</a></p>
-<div class="cabecalho">
-  <div>
-    <p class="sutil">Ficha do animal</p>
-    <h1>{{ a.nome }} {% if a.obito %}<span class="badge st-cancelado">óbito</span>{% endif %}</h1>
-  </div>
-  <div class="botoes">
-    {% if pode_clinico %}
-      <a class="btn btn-primario" href="{{ url_for('clinica.nova_consulta', aid=a.id) }}">+ Anotação de consulta</a>
-      <a class="btn btn-primario" href="{{ url_for('clinica.nova_receita', aid=a.id) }}">+ Receita</a>
-    {% endif %}
-    {% if current_user.tem_perfil('recepcao') and not a.obito %}
-      <a class="btn btn-primario" href="{{ url_for('agenda.novo', responsavel_id=a.responsavel.id, animal_id=a.id) }}">Agendar</a>
-    {% endif %}
-    <a class="btn" href="{{ url_for('animais.editar', aid=a.id) }}">Editar ficha</a>
-    <a class="btn btn-sutil" href="{{ url_for('animais.historico', aid=a.id) }}">Histórico de alterações</a>
-  </div>
-</div>
+<nav class="migalhas"><a href="{{ url_for('responsaveis.lista') }}">Tutores</a> <span>/</span> <a href="{{ url_for('responsaveis.ver', rid=a.responsavel.id) }}">{{ a.responsavel.nome }}</a> <span>/</span> {{ a.nome }}</nav>
 
-<div class="cartao">
-  <dl class="dados">
-    <div><dt>Espécie</dt><dd>{{ a.especie }}</dd></div>
-    <div><dt>Raça</dt><dd>{{ a.raca }}</dd></div>
-    <div><dt>Sexo</dt><dd>{{ a.sexo_nome }}</dd></div>
-    <div><dt>Idade</dt><dd>{{ a|idade }}</dd></div>
-    <div><dt>Castrado</dt><dd>{{ 'Sim' if a.castrado else 'Não' }}</dd></div>
-    <div><dt>Responsável</dt><dd>{{ a.responsavel.nome }} · {{ a.responsavel.telefone|telefone }}</dd></div>
-    {% if pode_clinico %}
-      <div><dt>Peso</dt><dd>{{ (a.peso_kg|string).replace('.', ',') ~ ' kg' if a.peso_kg is not none else '—' }}</dd></div>
-      <div><dt>Pelagem</dt><dd>{{ a.pelagem or '—' }}</dd></div>
-    {% endif %}
-  </dl>
-  {% if pode_clinico and (a.alergias or a.condicoes_cronicas or a.observacoes_clinicas) %}
-  <div class="clinico">
-    {% if a.alergias %}<p class="destaque-alerta"><b>Alergias:</b> {{ a.alergias }}</p>{% endif %}
-    {% if a.condicoes_cronicas %}<p><b>Condições crônicas:</b> {{ a.condicoes_cronicas }}</p>{% endif %}
-    {% if a.observacoes_clinicas %}<p><b>Observações:</b> {{ a.observacoes_clinicas }}</p>{% endif %}
+<section class="banner-paciente">
+  {{ avatar_paciente(a, 'grande') }}
+  <div class="bp-principal">
+    <h1>{{ a.nome }} {% if a.obito %}<span class="status st-cancelado">Óbito</span>{% endif %}</h1>
+    <p class="bp-dados">
+      <span>{{ a.especie }}</span><span>{{ a.raca }}</span><span>{{ a.sexo_nome }}</span>
+      <span>{{ a|idade }}</span>
+      <span>{{ 'Castrado' ~ ('a' if a.sexo == 'F' else '') if a.castrado else 'Não castrado' ~ ('a' if a.sexo == 'F' else '') }}</span>
+      {% if clinico and a.peso_kg is not none %}<span>{{ a.peso_kg|num(2) }} kg</span>{% endif %}
+    </p>
+    {% if clinico and a.alergias %}<p class="alerta-clinico">{{ icone('alerta') }} <b>Alergias:</b> {{ a.alergias }}</p>{% endif %}
+    {% if clinico and a.condicoes_cronicas %}<p class="nota-clinica"><b>Condições crônicas:</b> {{ a.condicoes_cronicas }}</p>{% endif %}
   </div>
+  <div class="bp-tutor">
+    <p class="sobretitulo">Tutor</p>
+    <a href="{{ url_for('responsaveis.ver', rid=a.responsavel.id) }}"><b>{{ a.responsavel.nome }}</b></a>
+    <a class="meta" href="tel:+55{{ a.responsavel.telefone }}">{{ icone('telefone') }} {{ a.responsavel.telefone|telefone }}</a>
+  </div>
+</section>
+
+<div class="barra-botoes">
+  {% if clinico and not a.obito %}
+    <a class="btn btn-primario" href="{{ url_for('atendimento.novo', aid=a.id) }}">{{ icone('estetoscopio') }} Novo atendimento</a>
+    <a class="btn" href="{{ url_for('atendimento.nova_receita', aid=a.id) }}">{{ icone('receita') }} Nova receita</a>
   {% endif %}
+  {% if current_user.tem_perfil('recepcao') and not a.obito %}
+    <a class="btn {{ '' if clinico else 'btn-primario' }}" href="{{ url_for('agenda.novo', responsavel_id=a.responsavel.id, animal_id=a.id) }}">{{ icone('calendario-mais') }} Agendar</a>
+  {% endif %}
+  <a class="btn" href="{{ url_for('animais.editar', aid=a.id) }}">{{ icone('editar') }} Editar ficha</a>
+  <a class="btn btn-fantasma" href="{{ url_for('animais.historico', aid=a.id) }}">{{ icone('historico') }} Alterações</a>
 </div>
 
-{% if pode_clinico %}
-<nav class="abas" data-abas>
-  <a href="#consultas">Consultas ({{ a.consultas|length }})</a>
-  <a href="#receitas">Receitas ({{ a.receitas|length }})</a>
-  <a href="#medicacoes">Medicações receitadas ({{ medicacoes|length }})</a>
-  <a href="#agendamentos">Agendamentos</a>
+<nav class="abas" data-abas role="tablist">
+  {% if clinico %}
+  <a href="#prontuario" role="tab">Prontuário <span class="contador">{{ a.consultas|length }}</span></a>
+  <a href="#medicacoes" role="tab">Medicações <span class="contador">{{ medicacoes|length }}</span></a>
+  <a href="#peso" role="tab">Peso</a>
+  {% endif %}
+  <a href="#agendamentos" role="tab">Agendamentos</a>
+  {% if clinico and a.observacoes_clinicas %}<a href="#observacoes" role="tab">Observações</a>{% endif %}
 </nav>
 
-<section id="consultas" class="aba">
-  <h2>Histórico de consultas</h2>
-  {% for c in a.consultas %}
-  <article class="cartao consulta" id="consulta-{{ c.id }}">
-    <div class="linha-meta">
-      <b>{{ c.data_hora|datahora }}</b> — {{ c.veterinario.nome }}
-      {% if c.motivo %} · <i>{{ c.motivo }}</i>{% endif %}
-      {% if c.peso_kg is not none %} · {{ (c.peso_kg|string).replace('.', ',') }} kg{% endif %}
-      {% if c.temperatura is not none %} · {{ (c.temperatura|string).replace('.', ',') }} °C{% endif %}
-    </div>
-    <div class="texto">{{ c.anotacao }}</div>
-    {% for ad in c.adendos %}
-      <div class="adendo"><small>Complemento em {{ ad.criado_em|datahora }} — {{ ad.autor.nome }}</small><div class="texto">{{ ad.texto }}</div></div>
-    {% endfor %}
-    <details class="nao-imprimir">
-      <summary>Adicionar complemento</summary>
-      <form method="post" action="{{ url_for('clinica.adendo', cid=c.id) }}">
-        {{ csrf() }}
-        <textarea name="texto" rows="3" required placeholder="As anotações não podem ser alteradas; registre aqui o complemento."></textarea>
-        <button class="btn btn-peq">Salvar complemento</button>
-      </form>
-    </details>
-  </article>
-  {% else %}
-  <p class="sutil">Nenhuma consulta registrada.</p>
+{% if clinico %}
+<section id="prontuario" class="aba" role="tabpanel">
+  {% if linha %}
+  <ol class="linha-tempo">
+  {% for tipo, quando, obj in linha %}
+    {% if tipo == 'atendimento' %}{% set c = obj %}
+    <li class="evento" id="at-{{ c.id }}">
+      <div class="evento-marca marca-atendimento"></div>
+      <article class="evento-corpo cartao">
+        <header class="evento-cab">
+          <div><b>{{ c.tipo }}</b> <span class="sutil">· {{ c.data_hora|datahora }} · {{ c.veterinario.nome }}</span></div>
+        </header>
+        <div class="vitais">
+          {{ vital('Peso', c.peso_kg|num(2) if c.peso_kg is not none else none, ' kg') }}
+          {{ vital('Temp.', c.temperatura|num(1) if c.temperatura is not none else none, ' °C') }}
+          {{ vital('FC', c.freq_cardiaca, ' bpm') }}
+          {{ vital('FR', c.freq_respiratoria, ' mpm') }}
+          {{ vital('TPC', c.tpc, ' s') }}
+          {{ vital('Mucosas', c.mucosas) }}
+          {{ vital('Hidratação', c.hidratacao) }}
+        </div>
+        <dl class="soap">
+          {% if c.queixa %}<dt>Queixa principal</dt><dd>{{ c.queixa }}</dd>{% endif %}
+          {% if c.anamnese %}<dt><abbr title="Subjetivo">S</abbr> Anamnese</dt><dd>{{ c.anamnese }}</dd>{% endif %}
+          {% if c.exame_fisico %}<dt><abbr title="Objetivo">O</abbr> Exame físico</dt><dd>{{ c.exame_fisico }}</dd>{% endif %}
+          {% if c.diagnostico %}<dt><abbr title="Avaliação">A</abbr> Diagnóstico / suspeita</dt><dd>{{ c.diagnostico }}</dd>{% endif %}
+          {% if c.conduta %}<dt><abbr title="Plano">P</abbr> Conduta</dt><dd>{{ c.conduta }}</dd>{% endif %}
+        </dl>
+        {% for rec in c.receitas %}
+        <div class="receita-resumo">
+          <div class="rr-cab">{{ icone('receita') }} <b>{{ rec.tipo_nome }}</b>
+            <a class="btn btn-peq btn-fantasma" href="{{ url_for('atendimento.imprimir_receita', rid=rec.id) }}">{{ icone('impressora') }} Imprimir</a></div>
+          <ul>{% for it in rec.itens %}<li><b>{{ it.medicamento }}</b>{% if it.concentracao %} {{ it.concentracao }}{% endif %} — {{ it.posologia }}{% if it.duracao %}, {{ it.duracao }}{% endif %}</li>{% endfor %}</ul>
+        </div>
+        {% endfor %}
+        {% for ad in c.adendos %}
+        <div class="complemento"><p class="pequeno sutil">Complemento · {{ ad.criado_em|datahora }} · {{ ad.autor.nome }}</p><p class="texto">{{ ad.texto }}</p></div>
+        {% endfor %}
+        <details class="add-complemento nao-imprimir">
+          <summary>Adicionar complemento</summary>
+          <form method="post" action="{{ url_for('atendimento.complemento', cid=c.id) }}">
+            {{ csrf() }}
+            <textarea name="texto" rows="3" required placeholder="O registro original não pode ser alterado. Registre aqui informações adicionais ou correções."></textarea>
+            <button class="btn btn-peq">Salvar complemento</button>
+          </form>
+        </details>
+      </article>
+    </li>
+    {% else %}{% set rec = obj %}
+    <li class="evento">
+      <div class="evento-marca marca-receita"></div>
+      <article class="evento-corpo cartao">
+        <header class="evento-cab"><div><b>{{ rec.tipo_nome }}</b> <span class="sutil">· {{ rec.emitida_em|datahora }} · {{ rec.veterinario.nome }}</span></div>
+          <a class="btn btn-peq btn-fantasma" href="{{ url_for('atendimento.imprimir_receita', rid=rec.id) }}">{{ icone('impressora') }} Imprimir</a></header>
+        <ul class="lista-simples">{% for it in rec.itens %}<li><b>{{ it.medicamento }}</b>{% if it.concentracao %} {{ it.concentracao }}{% endif %} — {{ it.posologia }}{% if it.duracao %}, {{ it.duracao }}{% endif %}</li>{% endfor %}</ul>
+      </article>
+    </li>
+    {% endif %}
   {% endfor %}
+  </ol>
+  {% else %}
+    {% call vazio('Nenhum atendimento registrado', 'Os atendimentos aparecem aqui em ordem cronológica.', 'estetoscopio') %}
+      {% if not a.obito %}<a class="btn btn-primario" href="{{ url_for('atendimento.novo', aid=a.id) }}">Iniciar atendimento</a>{% endif %}
+    {% endcall %}
+  {% endif %}
 </section>
 
-<section id="receitas" class="aba">
-  <h2>Receitas emitidas</h2>
-  {% for rec in a.receitas %}
-  <article class="cartao">
-    <div class="linha-meta"><b>{{ rec.emitida_em|datahora }}</b> — {{ rec.veterinario.nome }}
-      <a class="btn btn-peq" href="{{ url_for('clinica.imprimir_receita', rid=rec.id) }}">Ver / imprimir</a></div>
-    <ul>
-      {% for it in rec.itens %}<li><b>{{ it.medicamento }}</b>{% if it.concentracao %} {{ it.concentracao }}{% endif %} — {{ it.posologia }}{% if it.duracao %} ({{ it.duracao }}){% endif %}</li>{% endfor %}
-    </ul>
-  </article>
-  {% else %}
-  <p class="sutil">Nenhuma receita emitida.</p>
-  {% endfor %}
-</section>
-
-<section id="medicacoes" class="aba">
-  <h2>Histórico de medicações receitadas</h2>
+<section id="medicacoes" class="aba" role="tabpanel">
   {% if medicacoes %}
-  <input type="search" class="filtro-tabela" data-filtra="tab-med" placeholder="Filtrar medicamento…">
-  <div class="tabela-rolagem">
+  <div class="filtro-linha"><input type="search" data-filtra="tab-med" placeholder="Filtrar por medicamento"></div>
+  <div class="tabela-caixa">
   <table class="tabela" id="tab-med">
-    <thead><tr><th>Data</th><th>Medicamento</th><th>Concentração</th><th>Via</th><th>Posologia</th><th>Duração</th><th>Veterinária</th></tr></thead>
+    <thead><tr><th>Data</th><th>Medicamento</th><th>Via</th><th>Posologia</th><th>Duração</th><th>Prescrito por</th><th></th></tr></thead>
+    <tbody>
     {% for rec, it in medicacoes %}
-    <tr><td class="nowrap">{{ rec.emitida_em|data }}</td><td><b>{{ it.medicamento }}</b></td><td>{{ it.concentracao or '' }}</td><td>{{ it.via or '' }}</td><td>{{ it.posologia }}</td><td>{{ it.duracao or '' }}</td><td>{{ rec.veterinario.nome }}</td></tr>
+    <tr>
+      <td class="nowrap">{{ rec.emitida_em|data }}</td>
+      <td><b>{{ it.medicamento }}</b>{% if it.concentracao %} <span class="sutil">{{ it.concentracao }}</span>{% endif %}</td>
+      <td>{{ it.via or '—' }}</td><td>{{ it.posologia }}</td><td>{{ it.duracao or '—' }}</td>
+      <td>{{ rec.veterinario.nome }}</td>
+      <td class="acoes">{% if loop.first or rec.id != medicacoes[loop.index0 - 1][0].id %}<a class="btn btn-peq btn-fantasma" href="{{ url_for('atendimento.nova_receita', aid=a.id, repetir=rec.id) }}" title="Criar nova receita com os mesmos itens">{{ icone('repetir') }} Repetir</a>{% endif %}</td>
+    </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  </div>
+  {% else %}{{ vazio('Nenhuma medicação prescrita', '', 'pilula') }}{% endif %}
+</section>
+
+<section id="peso" class="aba" role="tabpanel">
+  {% if pesos %}
+  <div class="tabela-caixa estreito">
+  <table class="tabela">
+    <thead><tr><th>Data</th><th class="num">Peso</th><th class="num">Variação</th></tr></thead>
+    {% for quando, p in pesos %}
+    {% set anterior = pesos[loop.index][1] if not loop.last else none %}
+    <tr><td>{{ quando|data }}</td><td class="num">{{ p|num(2) }} kg</td>
+      <td class="num">{% if anterior is not none %}{% set dif = p - anterior %}<span class="{{ 'sobe' if dif > 0 else ('desce' if dif < 0 else '') }}">{{ '+' if dif > 0 }}{{ dif|num(2) }} kg</span>{% else %}—{% endif %}</td></tr>
     {% endfor %}
   </table>
   </div>
-  {% else %}<p class="sutil">Nenhuma medicação receitada.</p>{% endif %}
+  {% else %}{{ vazio('Sem registros de peso', 'O peso informado em cada atendimento aparece aqui.', 'balanca') }}{% endif %}
 </section>
+
+{% if a.observacoes_clinicas %}
+<section id="observacoes" class="aba" role="tabpanel"><div class="cartao"><p class="texto">{{ a.observacoes_clinicas }}</p></div></section>
+{% endif %}
 {% endif %}
 
-<section id="agendamentos" class="aba">
-  <h2>Agendamentos</h2>
+<section id="agendamentos" class="aba" role="tabpanel">
   {% if agendamentos %}
-  <div class="tabela-rolagem">
+  <div class="tabela-caixa">
   <table class="tabela">
-    <thead><tr><th>Data</th><th>Observação</th><th>Situação</th></tr></thead>
+    <thead><tr><th>Data</th><th>Tipo</th><th>Observação</th><th>Situação</th></tr></thead>
     {% for ag in agendamentos %}
-    <tr><td class="nowrap">{{ ag.data_hora|datahora }}</td><td>{{ ag.observacao or '' }}</td><td>{{ status_badge(ag) }}</td></tr>
+    <tr><td class="nowrap"><a href="{{ url_for('agenda.dia', data=ag.data_hora.date().isoformat()) }}">{{ ag.data_hora|datahora }}</a></td>
+      <td>{{ ag.tipo }}</td><td>{{ ag.observacao or '' }}</td><td>{{ status(ag) }}</td></tr>
     {% endfor %}
   </table>
   </div>
-  {% else %}<p class="sutil">Nenhum agendamento.</p>{% endif %}
+  {% else %}{{ vazio('Nenhum agendamento', '', 'calendario') }}{% endif %}
 </section>
 {% endblock %}

@@ -1,79 +1,92 @@
 {% extends "base.html" %}
-{% from "_macros.html" import campo, csrf with context %}
-{% block titulo %}{{ 'Editar ficha' if a else 'Novo animal' }}{% endblock %}
+{% from "_macros.html" import campo, texto, csrf with context %}
+{% block titulo %}{{ 'Editar ' ~ a.nome if a else 'Novo paciente' }}{% endblock %}
 {% block conteudo %}
-<p><a href="{{ url_for('animais.ver', aid=a.id) if a else url_for('responsaveis.ver', rid=responsavel.id) }}">← Voltar</a></p>
-<h1>{{ 'Ficha de ' ~ a.nome if a else 'Cadastro de animal' }}</h1>
-<p class="sutil">Responsável: <b>{{ responsavel.nome }}</b> · CPF {{ responsavel.cpf|cpf }}</p>
+<nav class="migalhas">
+  <a href="{{ url_for('responsaveis.ver', rid=responsavel.id) }}">{{ responsavel.nome }}</a>
+  {% if a %}<span>/</span> <a href="{{ url_for('animais.ver', aid=a.id) }}">{{ a.nome }}</a>{% endif %}
+</nav>
+<div class="cabecalho"><div>
+  <h1>{{ 'Editar ficha do paciente' if a else 'Novo paciente' }}</h1>
+  <p class="sutil">Tutor: {{ responsavel.nome }}{% if not a %} · Etapa 2 de 2{% endif %}</p>
+</div></div>
 {% set esp = dados.get('especie') or '' %}
 {% set esp_outra = esp and esp not in especies %}
-<form method="post" class="cartao" novalidate>
+<form method="post" class="form-secoes" novalidate>
   {{ csrf() }}
-  <input type="hidden" name="responsavel_id" value="{{ responsavel.id }}">
-  <fieldset>
-    <legend>Dados cadastrais</legend>
-    <div class="grade">
-      {{ campo('nome', 'Nome do animal', dados, erros, extra='maxlength="100"') }}
-      <label class="campo {{ 'com-erro' if erros.get('sexo') }}">
-        <span>Sexo <b class="obr">*</b></span>
-        <div class="opcoes">
-          <label><input type="radio" name="sexo" value="M" {{ 'checked' if dados.get('sexo') == 'M' }} required> Macho</label>
-          <label><input type="radio" name="sexo" value="F" {{ 'checked' if dados.get('sexo') == 'F' }}> Fêmea</label>
+  <section class="cartao secao-form">
+    <header><h2>Identificação do paciente</h2></header>
+    <div class="grade g-4">
+      {{ campo('nome', 'Nome', dados, erros, extra='maxlength="100" autocomplete="off"') }}
+      <div class="campo {{ 'com-erro' if erros.get('especie') }}">
+        <label for="f-especie">Espécie</label>
+        <div class="segmentado" role="radiogroup" aria-label="Espécie">
+          {% for e in especies %}
+          <label><input type="radio" name="especie" value="{{ e }}" data-outra-alvo="f-especie-outra" {{ 'checked' if e == esp or (e == 'Outra' and esp_outra) }}><span>{{ e }}</span></label>
+          {% endfor %}
         </div>
-        {% if erros.get('sexo') %}<small class="erro">{{ erros.sexo }}</small>{% endif %}
-      </label>
-      <label class="campo {{ 'com-erro' if erros.get('especie') }}">
-        <span>Espécie <b class="obr">*</b></span>
-        <select name="especie" data-outra="especie_outra" required>
-          <option value="">—</option>
-          {% for e in especies %}<option {{ 'selected' if (e == esp) or (e == 'Outra' and esp_outra) }}>{{ e }}</option>{% endfor %}
-        </select>
-        <input name="especie_outra" placeholder="Qual espécie?" value="{{ esp if esp_outra else '' }}" {{ '' if esp_outra else 'hidden' }}>
-        {% if erros.get('especie') %}<small class="erro">{{ erros.especie }}</small>{% endif %}
-      </label>
-      {{ campo('raca', 'Raça', dados, erros, extra='maxlength="80" list="racas"', ajuda='Use “SRD” para sem raça definida') }}
-      <label class="campo {{ 'com-erro' if erros.get('idade') }}">
-        <span>Idade <b class="obr">*</b></span>
-        <div class="linha">
-          <input type="number" name="idade_anos" min="0" max="40" value="{{ dados.get('idade_anos', '') }}" aria-label="Anos"> <small>anos</small>
-          <input type="number" name="idade_meses" min="0" max="11" value="{{ dados.get('idade_meses', '') }}" aria-label="Meses"> <small>meses</small>
+        <input id="f-especie-outra" name="especie_outra" placeholder="Qual espécie?" value="{{ esp if esp_outra else '' }}" {{ '' if esp_outra else 'hidden' }}>
+        {% if erros.get('especie') %}<p class="msg-erro">{{ erros.especie }}</p>{% endif %}
+      </div>
+      {{ campo('raca', 'Raça', dados, erros, extra='maxlength="80" list="racas" autocomplete="off"', ajuda='SRD para sem raça definida') }}
+      <div class="campo {{ 'com-erro' if erros.get('sexo') }}">
+        <label>Sexo</label>
+        <div class="segmentado" role="radiogroup" aria-label="Sexo">
+          <label><input type="radio" name="sexo" value="M" {{ 'checked' if dados.get('sexo') == 'M' }}><span>Macho</span></label>
+          <label><input type="radio" name="sexo" value="F" {{ 'checked' if dados.get('sexo') == 'F' }}><span>Fêmea</span></label>
         </div>
-        {% if a %}<small class="ajuda">Idade atual estimada: {{ a|idade }}</small>{% endif %}
-        {% if erros.get('idade') %}<small class="erro">{{ erros.idade }}</small>{% endif %}
-      </label>
-      <label class="campo {{ 'com-erro' if erros.get('castrado') }}">
-        <span>Castrado <b class="obr">*</b></span>
-        <div class="opcoes">
-          <label><input type="radio" name="castrado" value="sim" {{ 'checked' if dados.get('castrado') == true }} required> Sim</label>
-          <label><input type="radio" name="castrado" value="nao" {{ 'checked' if dados.get('castrado') == false and dados.get('castrado') is not none }}> Não</label>
+        {% if erros.get('sexo') %}<p class="msg-erro">{{ erros.sexo }}</p>{% endif %}
+      </div>
+      <div class="campo {{ 'com-erro' if erros.get('idade') }}">
+        <label for="f-idade">Idade</label>
+        <div class="entrada-composta">
+          <input id="f-idade" type="number" name="idade_anos" min="0" max="40" value="{{ dados.get('idade_anos', '') }}" aria-label="Anos"><span>anos</span>
+          <input type="number" name="idade_meses" min="0" max="11" value="{{ dados.get('idade_meses', '') }}" aria-label="Meses"><span>meses</span>
         </div>
-        {% if erros.get('castrado') %}<small class="erro">{{ erros.castrado }}</small>{% endif %}
-      </label>
+        {% if erros.get('idade') %}<p class="msg-erro">{{ erros.idade }}</p>{% elif a %}<p class="ajuda">Hoje: {{ a|idade }}</p>{% endif %}
+      </div>
+      <div class="campo {{ 'com-erro' if erros.get('castrado') }}">
+        <label>Castrado</label>
+        <div class="segmentado" role="radiogroup" aria-label="Castrado">
+          <label><input type="radio" name="castrado" value="sim" {{ 'checked' if dados.get('castrado') is sameas true }}><span>Sim</span></label>
+          <label><input type="radio" name="castrado" value="nao" {{ 'checked' if dados.get('castrado') is sameas false }}><span>Não</span></label>
+        </div>
+        {% if erros.get('castrado') %}<p class="msg-erro">{{ erros.castrado }}</p>{% endif %}
+      </div>
     </div>
     <datalist id="racas">
-      <option>SRD</option><option>Labrador</option><option>Poodle</option><option>Shih Tzu</option>
-      <option>Pinscher</option><option>Yorkshire</option><option>Pit Bull</option><option>Golden Retriever</option>
-      <option>Siamês</option><option>Persa</option><option>Maine Coon</option>
+      <option>SRD</option><option>Labrador Retriever</option><option>Golden Retriever</option><option>Poodle</option>
+      <option>Shih Tzu</option><option>Lhasa Apso</option><option>Yorkshire Terrier</option><option>Pinscher</option>
+      <option>Spitz Alemão</option><option>Bulldog Francês</option><option>Pit Bull</option><option>Pastor Alemão</option>
+      <option>Dachshund</option><option>Beagle</option><option>Siamês</option><option>Persa</option><option>Maine Coon</option><option>Angorá</option>
     </datalist>
-  </fieldset>
+  </section>
 
   {% if clinico %}
-  <fieldset>
-    <legend>Informações clínicas</legend>
-    <div class="grade">
-      {{ campo('peso_kg', 'Peso (kg)', dados, erros, obrigatorio=false, extra='inputmode="decimal" placeholder="ex.: 12,5"') }}
+  <section class="cartao secao-form">
+    <header><h2>Informações clínicas</h2><p class="sutil">Visível apenas para a equipe veterinária. Armazenado com criptografia.</p></header>
+    <div class="grade g-4">
+      {{ campo('peso_kg', 'Peso atual (kg)', dados, erros, obrigatorio=false, extra='inputmode="decimal" placeholder="0,0"') }}
       {{ campo('pelagem', 'Pelagem / cor', dados, erros, obrigatorio=false) }}
     </div>
-    <label class="campo"><span>Alergias</span><textarea name="alergias" rows="2">{{ dados.get('alergias') or '' }}</textarea></label>
-    <label class="campo"><span>Condições crônicas</span><textarea name="condicoes_cronicas" rows="2">{{ dados.get('condicoes_cronicas') or '' }}</textarea></label>
-    <label class="campo"><span>Observações clínicas</span><textarea name="observacoes_clinicas" rows="3">{{ dados.get('observacoes_clinicas') or '' }}</textarea></label>
-    <label class="check"><input type="checkbox" name="obito" {{ 'checked' if dados.get('obito') }}> Registrar óbito (impede novos agendamentos)</label>
-  </fieldset>
+    <div class="grade g-2">
+      {{ texto('alergias', 'Alergias e reações adversas', dados, erros, 2, ajuda='Aparece como alerta em todas as telas do paciente.') }}
+      {{ texto('condicoes_cronicas', 'Condições crônicas', dados, erros, 2) }}
+    </div>
+    {{ texto('observacoes_clinicas', 'Observações clínicas', dados, erros, 3) }}
+    <label class="check"><input type="checkbox" name="obito" {{ 'checked' if dados.get('obito') }}><span>Registrar óbito — impede novos agendamentos</span></label>
+  </section>
   {% endif %}
 
-  <div class="botoes">
-    <button class="btn btn-primario">{{ 'Salvar ficha' if a else 'Cadastrar animal' }}</button>
-    {% if not a %}<button class="btn" name="acao" value="outro">Cadastrar e adicionar outro</button>{% endif %}
+  <div class="barra-acoes">
+    <a class="btn btn-fantasma" href="{{ url_for('animais.ver', aid=a.id) if a else url_for('responsaveis.ver', rid=responsavel.id) }}">Cancelar</a>
+    {% if a %}
+      <button class="btn btn-primario">Salvar ficha</button>
+    {% else %}
+      <button class="btn" name="acao" value="outro">Salvar e cadastrar outro</button>
+      <button class="btn" name="acao" value="concluir">Salvar</button>
+      <button class="btn btn-primario" name="acao" value="agendar">Salvar e agendar</button>
+    {% endif %}
   </div>
 </form>
 {% endblock %}

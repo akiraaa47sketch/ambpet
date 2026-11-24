@@ -1,37 +1,46 @@
 {% extends "base.html" %}
 {% block titulo %}Auditoria{% endblock %}
+{% set nomes_acao = {'criar':'Cadastro','editar':'Alteração','visualizar':'Consulta de ficha','visualizar_prontuario':'Acesso ao prontuário','login':'Entrada','logout':'Saída','login_falhou':'Falha de login','login_bloqueado':'Login bloqueado','2fa_falhou':'Código 2FA inválido','2fa_ativado':'2FA ativado','2fa_desativado':'2FA desativado','status':'Mudança de situação','alterar_senha':'Troca de senha','redefinir_senha':'Senha redefinida','redefinir_2fa':'2FA redefinido','desbloquear':'Desbloqueio','exportar_dados_titular':'Exportação LGPD','anonimizar_titular':'Anonimização LGPD'} %}
 {% block conteudo %}
-<p><a href="{{ url_for('admin.usuarios') }}">← Usuários</a></p>
 <div class="cabecalho">
-  <h1>Registro de auditoria</h1>
-  <form method="get" class="linha">
-    <select name="entidade" onchange="this.form.submit()" aria-label="Filtrar">
-      <option value="">Todas as entidades</option>
-      {% for e in entidades %}<option {{ 'selected' if e == entidade }}>{{ e }}</option>{% endfor %}
-    </select>
-  </form>
+  <div><h1>Auditoria</h1><p class="sutil">Registro de quem acessou e alterou dados. Os registros não podem ser editados nem apagados.</p></div>
+  <div class="botoes">
+    <form method="get" class="form-linha">
+      <select name="entidade" aria-label="Filtrar" data-enviar-ao-mudar>
+        <option value="">Todos os registros</option>
+        {% for e in entidades %}<option {{ 'selected' if e == entidade }}>{{ e }}</option>{% endfor %}
+      </select>
+    </form>
+    <a class="btn" href="{{ url_for('admin.auditoria', verificar=1) }}">{{ icone('escudo') }} Verificar integridade</a>
+  </div>
 </div>
-<div class="tabela-rolagem">
+{% if integridade %}
+  {% if integridade[0] %}<div class="alerta alerta-ok">Cadeia íntegra: {{ integridade[2] }} registros verificados, nenhum adulterado.</div>
+  {% else %}<div class="alerta alerta-erro">Integridade comprometida a partir do registro {{ integridade[1] }}. Acione o responsável técnico.</div>{% endif %}
+{% endif %}
+<div class="tabela-caixa">
 <table class="tabela compacta">
-  <thead><tr><th>Data/hora</th><th>Usuário</th><th>Ação</th><th>Entidade</th><th>Detalhes</th></tr></thead>
+  <thead><tr><th>Data e hora</th><th>Usuário</th><th>Ação</th><th>Registro</th><th>Detalhes</th></tr></thead>
+  <tbody>
   {% for l in pag.items %}
-  <tr>
+  <tr class="{{ 'linha-alerta' if l.acao in ('login_falhou','login_bloqueado','2fa_falhou','anonimizar_titular') }}">
     <td class="nowrap">{{ l.criado_em|datahora }}</td>
     <td>{{ l.usuario.nome if l.usuario else '—' }}</td>
-    <td>{{ l.acao }}</td>
+    <td>{{ nomes_acao.get(l.acao, l.acao) }}</td>
     <td class="nowrap">
-      {% if l.entidade == 'responsavel' %}<a href="{{ url_for('responsaveis.ver', rid=l.entidade_id) }}">responsável #{{ l.entidade_id }}</a>
-      {% elif l.entidade == 'animal' %}<a href="{{ url_for('animais.ver', aid=l.entidade_id) }}">animal #{{ l.entidade_id }}</a>
-      {% else %}{{ l.entidade }} #{{ l.entidade_id }}{% endif %}
+      {% if l.entidade == 'tutor' and l.entidade_id %}<a href="{{ url_for('responsaveis.ver', rid=l.entidade_id) }}">Tutor {{ l.entidade_id }}</a>
+      {% elif l.entidade == 'paciente' and l.entidade_id %}<a href="{{ url_for('animais.ver', aid=l.entidade_id) }}">Paciente {{ l.entidade_id }}</a>
+      {% else %}{{ l.entidade|capitalize }} {{ l.entidade_id or '' }}{% endif %}
     </td>
-    <td><code class="detalhes">{{ l.detalhes or '' }}</code></td>
+    <td>{% if l.detalhes %}<details><summary>ver</summary><code class="detalhes">{{ l.detalhes }}</code></details>{% endif %}</td>
   </tr>
   {% endfor %}
+  </tbody>
 </table>
 </div>
-<div class="botoes">
-  {% if pag.has_prev %}<a class="btn" href="{{ url_for('admin.auditoria', pagina=pag.prev_num, entidade=entidade) }}">← Mais recentes</a>{% endif %}
+<div class="paginacao">
+  {% if pag.has_prev %}<a class="btn btn-peq" href="{{ url_for('admin.auditoria', pagina=pag.prev_num, entidade=entidade) }}">{{ icone('esquerda') }} Mais recentes</a>{% endif %}
   <span class="sutil">Página {{ pag.page }} de {{ pag.pages or 1 }}</span>
-  {% if pag.has_next %}<a class="btn" href="{{ url_for('admin.auditoria', pagina=pag.next_num, entidade=entidade) }}">Mais antigos →</a>{% endif %}
+  {% if pag.has_next %}<a class="btn btn-peq" href="{{ url_for('admin.auditoria', pagina=pag.next_num, entidade=entidade) }}">Mais antigos {{ icone('direita') }}</a>{% endif %}
 </div>
 {% endblock %}

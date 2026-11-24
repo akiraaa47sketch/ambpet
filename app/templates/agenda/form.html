@@ -1,59 +1,77 @@
 {% extends "base.html" %}
-{% from "_macros.html" import csrf with context %}
+{% from "_macros.html" import csrf, avatar_paciente with context %}
 {% block titulo %}Novo agendamento{% endblock %}
 {% block conteudo %}
-<p><a href="{{ url_for('agenda.novo') }}">← Trocar responsável</a></p>
-<h1>Novo agendamento</h1>
-<p class="sutil">Passo 2 de 2 — escolha o animal, a data e o horário.</p>
+<nav class="migalhas"><a href="{{ url_for('agenda.dia') }}">Agenda</a> <span>/</span> Novo agendamento</nav>
+<div class="cabecalho"><div><h1>Novo agendamento</h1>
+  <p class="sutil">Atendimento de segunda a sexta, das {{ inicio.strftime('%H:%M') }} às {{ fim.strftime('%H:%M') }}.</p></div></div>
+<ol class="etapas"><li class="feita"><a href="{{ url_for('agenda.novo', data=dados.data, hora=dados.hora) }}">Tutor e paciente</a></li><li class="atual">Data e horário</li></ol>
 
-<div class="cartao">
-  <b>{{ responsavel.nome }}</b> · CPF {{ responsavel.cpf|cpf }} · {{ responsavel.telefone|telefone }}
+<div class="cartao tutor-faixa">
+  <div><p class="sobretitulo">Tutor</p><b>{{ responsavel.nome }}</b> <span class="sutil">· {{ responsavel.telefone|telefone }}</span></div>
+  <a class="btn btn-peq btn-fantasma" href="{{ url_for('agenda.novo', data=dados.data, hora=dados.hora) }}">Trocar</a>
 </div>
 
 {% if not animais %}
-  <div class="alerta alerta-aviso">Este responsável não tem animais cadastrados.
-    <a href="{{ url_for('animais.novo', responsavel_id=responsavel.id) }}">Cadastrar animal</a></div>
+  <div class="alerta alerta-aviso">Este tutor não possui pacientes ativos.
+    <a href="{{ url_for('animais.novo', responsavel_id=responsavel.id) }}">Cadastrar paciente</a></div>
 {% else %}
-<form method="post" class="cartao" novalidate>
+<form method="post" class="form-secoes" id="form-agendar" novalidate>
   {{ csrf() }}
   <input type="hidden" name="responsavel_id" value="{{ responsavel.id }}">
-  <fieldset class="{{ 'com-erro' if erros.get('animal_id') }}">
-    <legend>Qual animal será atendido? <b class="obr">*</b></legend>
+  <section class="cartao secao-form {{ 'com-erro' if erros.get('animal_id') }}">
+    <header><h2>Paciente</h2></header>
     <div class="opcoes-cartao">
       {% for a in animais %}
       <label class="opcao-cartao">
-        <input type="radio" name="animal_id" value="{{ a.id }}" {{ 'checked' if dados.animal_id == a.id }} required>
-        <span><b>{{ a.nome }}</b><br><small>{{ a.especie }} · {{ a.raca }} · {{ a.sexo_nome }}</small></span>
+        <input type="radio" name="animal_id" value="{{ a.id }}" {{ 'checked' if dados.animal_id == a.id }}>
+        {{ avatar_paciente(a) }}
+        <span><b>{{ a.nome }}</b><small>{{ a.especie }} · {{ a.raca }} · {{ a.sexo_nome }}</small></span>
       </label>
       {% endfor %}
     </div>
-    {% if erros.get('animal_id') %}<small class="erro">{{ erros.animal_id }}</small>{% endif %}
-  </fieldset>
+    {% if erros.get('animal_id') %}<p class="msg-erro">{{ erros.animal_id }}</p>{% endif %}
+  </section>
 
-  <div class="grade {{ 'com-erro' if erros.get('data') }}">
-    <label class="campo">
-      <span>Data <b class="obr">*</b></span>
-      <input type="date" name="data" value="{{ dados.data }}" required data-recarregar>
-      <small class="ajuda">Segunda a sexta-feira</small>
-    </label>
-    <label class="campo">
-      <span>Horário <b class="obr">*</b></span>
-      <select name="hora" required>
-        <option value="">—</option>
+  <section class="cartao secao-form {{ 'com-erro' if erros.get('data') }}">
+    <header><h2>Data e horário</h2></header>
+    <div class="grade g-4">
+      <div class="campo">
+        <label for="f-data">Data</label>
+        <input id="f-data" type="date" name="data" value="{{ dados.data }}" required data-recarregar-form>
+      </div>
+      <div class="campo">
+        <label for="f-tipo">Tipo</label>
+        <select id="f-tipo" name="tipo">{% for t in tipos %}<option {{ 'selected' if dados.tipo == t }}>{{ t }}</option>{% endfor %}</select>
+      </div>
+    </div>
+    <fieldset class="horarios">
+      <legend>Horário {% if ocupados %}<span class="legenda-ocupado">ocupado</span>{% endif %}</legend>
+      <div class="horarios-grade">
         {% for h in horarios %}
-          <option value="{{ h }}" {{ 'selected' if dados.hora == h }}>{{ h }}{% if ocupados.get(h) %} — {{ ocupados[h] }} já agendado(s){% endif %}</option>
+        <label class="horario {{ 'ocupado' if ocupados.get(h) }}">
+          <input type="radio" name="hora" value="{{ h }}" {{ 'checked' if dados.hora == h }}>
+          <span>{{ h }}{% if ocupados.get(h) %}<small>{{ ocupados[h] }}</small>{% endif %}</span>
+        </label>
         {% endfor %}
-      </select>
-      <small class="ajuda">Das 08:00 às 16:00</small>
-    </label>
-  </div>
-  {% if erros.get('data') %}<p class="erro">{{ erros.data }}</p>{% endif %}
+      </div>
+    </fieldset>
+    {% if erros.get('data') %}<p class="msg-erro">{{ erros.data }}</p>{% endif %}
+  </section>
 
-  <label class="campo">
-    <span>Observação</span>
-    <textarea name="observacao" rows="3" placeholder="Motivo da consulta, retorno, vacina…">{{ dados.observacao }}</textarea>
-  </label>
-  <div class="botoes"><button class="btn btn-primario">Confirmar agendamento</button></div>
+  <section class="cartao secao-form">
+    <header><h2>Observação</h2></header>
+    <div class="campo">
+      <label for="f-obs" class="sr">Observação</label>
+      <textarea id="f-obs" name="observacao" rows="3" maxlength="500" placeholder="Motivo da consulta, retorno, vacina, jejum…">{{ dados.observacao }}</textarea>
+      <p class="ajuda">Aparece na agenda do dia para a recepção e a veterinária.</p>
+    </div>
+  </section>
+
+  <div class="barra-acoes">
+    <a class="btn btn-fantasma" href="{{ url_for('agenda.dia') }}">Cancelar</a>
+    <button class="btn btn-primario" name="confirmar" value="1">{{ icone('check') }} Confirmar agendamento</button>
+  </div>
 </form>
 {% endif %}
 {% endblock %}
